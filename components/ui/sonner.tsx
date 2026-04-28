@@ -1,6 +1,5 @@
 'use client';
 
-import { useTheme } from 'next-themes';
 import { Toaster as Sonner, type ToasterProps } from 'sonner';
 import {
   CircleCheckIcon,
@@ -10,12 +9,17 @@ import {
   Loader2Icon,
 } from 'lucide-react';
 
+/**
+ * Brief §4.11. Light-only v1 — theme is hardcoded, no next-themes provider.
+ * Position: top-right desktop / top-center mobile (Sonner default handles per-viewport).
+ * CSS vars map to locked palette via globals.css.
+ */
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = 'system' } = useTheme();
-
   return (
     <Sonner
-      theme={theme as ToasterProps['theme']}
+      theme="light"
+      position="top-right"
+      duration={4000}
       className="toaster group"
       icons={{
         success: <CircleCheckIcon className="size-4" />,
@@ -26,10 +30,17 @@ const Toaster = ({ ...props }: ToasterProps) => {
       }}
       style={
         {
-          '--normal-bg': 'var(--popover)',
-          '--normal-text': 'var(--popover-foreground)',
+          '--normal-bg': 'var(--color-paper)',
+          '--normal-text': 'var(--color-ink)',
           '--normal-border': 'var(--border)',
-          '--border-radius': 'var(--radius)',
+          '--success-bg': 'var(--color-paper)',
+          '--success-text': 'var(--color-success)',
+          '--success-border': 'var(--color-success)',
+          '--error-bg': 'var(--color-paper)',
+          '--error-text': 'var(--color-warn)',
+          '--error-border': 'var(--color-warn)',
+          '--border-radius': 'var(--radius-md)',
+          '--shadow': 'var(--shadow-e2)',
         } as React.CSSProperties
       }
       toastOptions={{
