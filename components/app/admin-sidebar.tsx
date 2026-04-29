@@ -1,13 +1,16 @@
 'use client';
 
+import { useTransition } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Calendar,
+  ChevronsUpDown,
   FileText,
   Home,
   Inbox,
   Lock,
+  LogOut,
   Newspaper,
   Settings,
   ShieldCheck,
@@ -15,6 +18,15 @@ import {
   UserCircle,
 } from 'lucide-react';
 
+import { signOut } from '@/app/_actions/auth';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
   Sidebar,
   SidebarContent,
@@ -49,6 +61,13 @@ const ITEMS: NavItem[] = [
 
 export function AdminSidebar() {
   const pathname = usePathname();
+  const [isPending, startTransition] = useTransition();
+
+  function handleSignOut() {
+    startTransition(async () => {
+      await signOut();
+    });
+  }
 
   return (
     <Sidebar>
@@ -115,19 +134,47 @@ export function AdminSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="border-ink/12 border-t">
-        <div className="flex items-center gap-3 px-2 py-2">
-          <span
-            aria-hidden="true"
-            className="bg-paper-3 border-ink/15 inline-flex size-9 shrink-0 items-center justify-center rounded-full border"
-          />
-          <div className="flex flex-col text-xs leading-tight">
-            <span className="text-ink-faint font-mono text-[10px] tracking-wide uppercase">
-              Signed in as
-            </span>
-            <span className="text-ink font-script text-base leading-tight">[Secretary]</span>
-            <span className="text-ink-faint text-[11px]">Secretary</span>
-          </div>
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            className="hover:bg-paper-3 focus-visible:ring-rust/40 flex w-full items-center gap-3 rounded-md px-2 py-2 text-left transition-colors outline-none focus-visible:ring-2"
+            aria-label="Account menu"
+          >
+            <span
+              aria-hidden="true"
+              className="bg-paper-3 border-ink/15 inline-flex size-9 shrink-0 items-center justify-center rounded-full border"
+            />
+            <div className="flex flex-1 flex-col text-xs leading-tight">
+              <span className="text-ink-faint font-mono text-[10px] tracking-wide uppercase">
+                Signed in as
+              </span>
+              <span className="text-ink font-script text-base leading-tight">[Secretary]</span>
+              <span className="text-ink-faint text-[11px]">Secretary</span>
+            </div>
+            <ChevronsUpDown className="text-ink-faint size-4 shrink-0" aria-hidden="true" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            side="top"
+            align="end"
+            sideOffset={8}
+            className="w-[--radix-dropdown-menu-trigger-width] min-w-56"
+          >
+            <DropdownMenuLabel className="text-ink-faint font-mono text-[10px] tracking-wide uppercase">
+              Account
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onSelect={(e) => {
+                e.preventDefault();
+                handleSignOut();
+              }}
+              disabled={isPending}
+              className="text-rust focus:text-rust focus:bg-rust/10"
+            >
+              <LogOut className="size-4" />
+              <span>{isPending ? 'Signing out…' : 'Sign out'}</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </SidebarFooter>
     </Sidebar>
   );
