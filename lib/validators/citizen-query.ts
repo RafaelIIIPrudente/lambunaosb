@@ -39,6 +39,8 @@ export const citizenQuerySchema = z.object({
   }),
   // Honeypot — should always be empty. Bots fill it.
   website: z.string().max(0).optional(),
+  // Cloudflare Turnstile token. Verified server-side; optional in dev.
+  turnstileToken: z.string().optional(),
 });
 
 export type CitizenQueryInput = z.infer<typeof citizenQuerySchema>;

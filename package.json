@@ -9,7 +9,13 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
-    "prepare": "husky"
+    "prepare": "husky",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
+    "db:seed": "tsx --env-file=.env.local lib/db/seed.ts",
+    "db:link-secretary": "tsx --env-file=.env.local lib/db/seed.ts --link"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx,mjs,cjs}": [

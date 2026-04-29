@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 
 import { ImagePlaceholder } from '@/components/ui/image-placeholder';
-import { mockMembers } from '@/lib/mock/meetings';
+import { getActiveMembers } from '@/lib/db/queries/members';
 
 const POSITION_LABELS: Record<string, string> = {
   mayor: 'Mayor',
@@ -18,9 +18,9 @@ export const metadata = {
   description: 'The members of the Sangguniang Bayan ng Lambunao for term 2025–2028.',
 };
 
-export default function MembersPage() {
+export default async function MembersPage() {
   // Drop the Mayor — directory is for SB members + Vice Mayor (presider)
-  const members = mockMembers.filter((m) => m.position !== 'mayor');
+  const members = await getActiveMembers({ excludePositions: ['mayor'], showOnPublicOnly: true });
 
   return (
     <section className="mx-auto w-full max-w-[1200px] px-4 py-12 sm:px-8 md:py-16">

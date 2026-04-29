@@ -5,7 +5,7 @@ import { format, formatDistanceToNow } from 'date-fns';
 
 import { Button } from '@/components/ui/button';
 import { ImagePlaceholder } from '@/components/ui/image-placeholder';
-import { mockNews } from '@/lib/mock/meetings';
+import { getFeaturedNews } from '@/lib/db/queries/news';
 
 const CATEGORY_LABELS: Record<string, string> = {
   health: 'Health',
@@ -16,8 +16,8 @@ const CATEGORY_LABELS: Record<string, string> = {
   press_release: 'Press release',
 };
 
-export default function LandingPage() {
-  const featuredNews = mockNews.slice(0, 3);
+export default async function LandingPage() {
+  const featuredNews = await getFeaturedNews(3);
 
   return (
     <>

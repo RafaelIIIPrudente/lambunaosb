@@ -4,7 +4,8 @@ import { ChevronRight, Download, Share2 } from 'lucide-react';
 import { format } from 'date-fns';
 
 import { ImagePlaceholder } from '@/components/ui/image-placeholder';
-import { mockNews } from '@/lib/mock/meetings';
+import { safeBuildtimeQuery } from '@/lib/db/queries/_safe';
+import { getAllPublishedNewsSlugs, getNewsBySlug } from '@/lib/db/queries/news';
 
 const CATEGORY_LABELS: Record<string, string> = {
   health: 'Health',
@@ -16,12 +17,12 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 export async function generateStaticParams() {
-  return mockNews.map((p) => ({ slug: p.slug }));
+  return safeBuildtimeQuery(() => getAllPublishedNewsSlugs(), []);
 }
 
 export default async function NewsPostPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const post = mockNews.find((p) => p.slug === slug);
+  const post = await getNewsBySlug(slug);
   if (!post) notFound();
 
   return (

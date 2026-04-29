@@ -3,7 +3,7 @@ import { ArrowRight, Search } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 
 import { ImagePlaceholder } from '@/components/ui/image-placeholder';
-import { mockNews } from '@/lib/mock/meetings';
+import { getPublishedNews } from '@/lib/db/queries/news';
 
 const CATEGORY_LABELS: Record<string, string> = {
   health: 'Health',
@@ -22,8 +22,8 @@ export const metadata = {
     'Bulletins, public hearings, and announcements from the Sangguniang Bayan ng Lambunao.',
 };
 
-export default function NewsPage() {
-  const items = [...mockNews, ...mockNews];
+export default async function NewsPage() {
+  const items = await getPublishedNews();
 
   return (
     <section className="mx-auto w-full max-w-[1200px] px-4 py-12 sm:px-8 md:py-16">

@@ -1,8 +1,9 @@
-import Link from 'next/link';
-import { ArrowRight, Lock, Mail } from 'lucide-react';
+import { Suspense } from 'react';
 
-import { Button } from '@/components/ui/button';
-import { Field, FieldInput } from '@/components/ui/field';
+import { env } from '@/env';
+import { MOCK_LOGIN_EMAIL, MOCK_LOGIN_PASSWORD } from '@/lib/auth/mock-creds';
+
+import { LoginForm } from './_form';
 
 export const metadata = {
   title: 'Sign in',
@@ -55,50 +56,23 @@ export default function LoginPage() {
           </p>
           <h1 className="text-ink font-script text-4xl font-medium">Welcome back</h1>
 
-          <form className="mt-8 flex flex-col gap-4" noValidate>
-            <Field label="Email address" required>
-              <div className="flex items-center gap-2">
-                <Mail className="text-ink-faint size-4" aria-hidden="true" />
-                <FieldInput
-                  type="email"
-                  inputMode="email"
-                  placeholder="you@lambunao.gov.ph"
-                  autoComplete="email"
-                  required
-                />
-              </div>
-            </Field>
+          <Suspense fallback={<div className="mt-8 h-64" aria-hidden="true" />}>
+            <LoginForm />
+          </Suspense>
 
-            <Field label="Password" required>
-              <div className="flex items-center gap-2">
-                <Lock className="text-ink-faint size-4" aria-hidden="true" />
-                <FieldInput
-                  type="password"
-                  placeholder="••••••••••"
-                  autoComplete="current-password"
-                  required
-                />
-              </div>
-            </Field>
-
-            <div className="mt-1 flex items-center justify-between text-sm">
-              <label className="text-ink-soft inline-flex items-center gap-2">
-                <input type="checkbox" className="accent-rust size-4" />
-                <span>Remember me</span>
-              </label>
-              <Link
-                href="/reset-password"
-                className="text-rust font-script text-base hover:underline"
-              >
-                Forgot password?
-              </Link>
+          {env.MOCK_DATA && (
+            <div className="border-rust/40 bg-rust/8 mt-6 rounded-md border border-dashed p-4 text-sm leading-relaxed">
+              <p className="text-rust mb-2 font-mono text-[10px] font-semibold tracking-[0.18em] uppercase">
+                Mock mode active · any creds accepted
+              </p>
+              <p className="text-ink-soft italic">
+                Use <code className="text-rust font-mono not-italic">{MOCK_LOGIN_EMAIL}</code> /{' '}
+                <code className="text-rust font-mono not-italic">{MOCK_LOGIN_PASSWORD}</code> — or
+                anything else. Set <code className="font-mono not-italic">MOCK_DATA=false</code> to
+                enforce real Supabase auth.
+              </p>
             </div>
-
-            <Button type="submit" size="lg" className="font-script mt-2 text-lg">
-              Sign in
-              <ArrowRight />
-            </Button>
-          </form>
+          )}
 
           <div className="border-ink/30 text-ink-soft mt-6 rounded-md border border-dashed p-4 text-sm leading-relaxed">
             <strong className="text-ink font-semibold">No self-registration.</strong>{' '}

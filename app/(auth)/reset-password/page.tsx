@@ -1,8 +1,7 @@
 import Link from 'next/link';
-import { ArrowLeft, Mail } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 
-import { Button } from '@/components/ui/button';
-import { Field, FieldInput } from '@/components/ui/field';
+import { ResetPasswordRequestForm } from './_request-form';
 
 export const metadata = { title: 'Reset password' };
 
@@ -27,23 +26,7 @@ export default function ResetPasswordPage() {
           for 15 minutes.
         </p>
 
-        <form className="mt-8 flex flex-col gap-4" noValidate>
-          <Field label="Email address" required>
-            <div className="flex items-center gap-2">
-              <Mail className="text-ink-faint size-4" aria-hidden="true" />
-              <FieldInput
-                type="email"
-                placeholder="you@lambunao.gov.ph"
-                autoComplete="email"
-                required
-              />
-            </div>
-          </Field>
-
-          <Button type="submit" size="lg" className="font-script mt-2 text-lg">
-            Send reset link
-          </Button>
-        </form>
+        <ResetPasswordRequestForm />
 
         <p className="text-ink-faint mt-8 text-xs leading-relaxed italic">
           Lost access entirely? Email{' '}

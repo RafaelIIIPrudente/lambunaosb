@@ -2,13 +2,32 @@
 
 import 'server-only';
 
-import { citizenQuerySchema, type CitizenQueryInput } from '@/lib/validators/citizen-query';
-import { type Result, ok, err } from '@/lib/types/result';
+import { and, desc, eq } from 'drizzle-orm';
+import { headers } from 'next/headers';
+import { revalidatePath } from 'next/cache';
 
-/**
- * Phase 2 stub. Phase 3 wires Drizzle + Supabase + Resend + Turnstile.
- * Shape stable now so the form integration is locked.
- */
+import { env } from '@/env';
+import { db } from '@/lib/db';
+import { getCurrentTenantId } from '@/lib/db/queries/tenant';
+import { citizenQueries } from '@/lib/db/schema';
+import { verifyTurnstile } from '@/lib/security/turnstile';
+import { writeAudit } from '@/lib/services/audit';
+import { ok, err, type Result } from '@/lib/types/result';
+import { citizenQuerySchema, type CitizenQueryInput } from '@/lib/validators/citizen-query';
+
+const RETENTION_YEARS = 3;
+
+async function nextRefForYear(tenantId: string, year: number): Promise<string> {
+  const [latest] = await db
+    .select({ sequenceNumber: citizenQueries.sequenceNumber })
+    .from(citizenQueries)
+    .where(and(eq(citizenQueries.tenantId, tenantId), eq(citizenQueries.year, year)))
+    .orderBy(desc(citizenQueries.sequenceNumber))
+    .limit(1);
+  const next = (latest?.sequenceNumber ?? 0) + 1;
+  return `Q-${year}-${next.toString().padStart(4, '0')}`;
+}
+
 export async function createCitizenQuery(
   raw: unknown,
 ): Promise<Result<{ referenceNumber: string }>> {
@@ -17,22 +36,82 @@ export async function createCitizenQuery(
     return err('Please correct the highlighted fields.', 'E_VALIDATION');
   }
 
-  // Honeypot tripped → succeed silently per brief §4 / PROJECT.md §17.1.
+  // Honeypot tripped → silent success per RA 10173 §17.1.
   if (parsed.data.website && parsed.data.website.length > 0) {
-    return ok({ referenceNumber: pretendReference() });
+    return ok({ referenceNumber: 'Q-0000-0000' });
   }
 
-  // Persist + spam-check + email would happen here in Phase 3.
-  // For now, fabricate the reference number per PROJECT.md §4.
-  await new Promise((resolve) => setTimeout(resolve, 500));
+  // MOCK_DATA mode: pretend the submission succeeded so the public form
+  // demo flow works before Supabase is wired.
+  if (env.MOCK_DATA) {
+    const year = new Date().getFullYear();
+    const fakeSeq = Math.floor(Math.random() * 9000) + 1000;
+    return ok({ referenceNumber: `Q-${year}-${fakeSeq}` });
+  }
 
-  return ok({ referenceNumber: pretendReference() });
-}
+  try {
+    const headerList = await headers();
+    const userAgent = headerList.get('user-agent');
+    const forwardedFor = headerList.get('x-forwarded-for');
+    const ipInet = forwardedFor?.split(',')[0]?.trim() ?? null;
 
-function pretendReference() {
-  const year = new Date().getFullYear();
-  const seq = String(Math.floor(Math.random() * 9000) + 1000);
-  return `Q-${year}-${seq}`;
+    const passedCaptcha = await verifyTurnstile(parsed.data.turnstileToken, ipInet);
+    if (!passedCaptcha) {
+      return err('Captcha verification failed. Please refresh and try again.', 'INVALID_CAPTCHA');
+    }
+
+    const tenantId = await getCurrentTenantId();
+
+    const submittedAt = new Date();
+    const year = submittedAt.getFullYear();
+    const ref = await nextRefForYear(tenantId, year);
+    const sequenceNumber = Number(ref.split('-')[2]);
+    const retentionExpiresAt = new Date(submittedAt);
+    retentionExpiresAt.setFullYear(retentionExpiresAt.getFullYear() + RETENTION_YEARS);
+
+    const [row] = await db
+      .insert(citizenQueries)
+      .values({
+        tenantId,
+        ref,
+        year,
+        sequenceNumber,
+        submitterName: parsed.data.fullName,
+        submitterEmail: parsed.data.email,
+        subject: parsed.data.subject,
+        messageMd: parsed.data.message,
+        category: parsed.data.category,
+        status: 'new',
+        submittedAt,
+        retentionExpiresAt,
+        ipInet,
+        userAgent,
+      })
+      .returning({ id: citizenQueries.id, ref: citizenQueries.ref });
+
+    if (!row) return err('Failed to record your query. Please try again.', 'E_INSERT_FAILED');
+
+    await writeAudit({
+      actorId: null,
+      actorRole: null,
+      action: 'citizen_query.submitted',
+      category: 'query',
+      targetType: 'citizen_query',
+      targetId: row.id,
+      ipInet,
+      userAgent,
+      metadata: { ref: row.ref, category: parsed.data.category },
+    });
+
+    revalidatePath('/admin/queries');
+    revalidatePath('/admin/dashboard');
+    return ok({ referenceNumber: row.ref });
+  } catch (e) {
+    return err(
+      e instanceof Error ? e.message : 'We could not record your query. Please try again later.',
+      'E_UNKNOWN',
+    );
+  }
 }
 
 export type { CitizenQueryInput };

@@ -5,7 +5,7 @@ import { AdminPageHeader } from '@/components/app/admin-page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ImagePlaceholder } from '@/components/ui/image-placeholder';
-import { mockMembers } from '@/lib/mock/meetings';
+import { getActiveMembers } from '@/lib/db/queries/members';
 
 const POSITION_LABELS: Record<string, string> = {
   mayor: 'Mayor',
@@ -16,18 +16,22 @@ const POSITION_LABELS: Record<string, string> = {
   ipmr: 'IPMR',
 };
 
-// Pad to 8 cards as per mockup
-const CARDS = mockMembers
-  .filter((m) => m.position !== 'mayor')
-  .slice(0, 8)
-  .map((m, i) => ({
-    ...m,
-    badges: i === 0 ? ['Health & Sanit.', 'Education'] : m.committees.slice(0, 2),
-  }));
-
 export const metadata = { title: 'SB Members' };
 
-export default function MembersAdminPage() {
+export default async function MembersAdminPage() {
+  const members = await getActiveMembers({ excludePositions: ['mayor'] });
+  // Show up to 8 in the grid; first card gets the canonical "Health & Sanit. + Education" badge pair
+  // when its committee data is empty so the layout matches the mockup.
+  const CARDS = members.slice(0, 8).map((m, i) => ({
+    ...m,
+    badges:
+      m.committees.length > 0
+        ? m.committees.slice(0, 2)
+        : i === 0
+          ? ['Health & Sanit.', 'Education']
+          : [],
+  }));
+
   return (
     <div>
       <AdminPageHeader

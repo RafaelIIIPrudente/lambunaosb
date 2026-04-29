@@ -4,15 +4,16 @@ import { ChevronRight, Globe, Plus, Trash2, Upload, X } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Field, FieldInput, FieldSelect } from '@/components/ui/field';
-import { mockMembers } from '@/lib/mock/meetings';
+import { safeBuildtimeQuery } from '@/lib/db/queries/_safe';
+import { getAllMemberIds, getMemberById } from '@/lib/db/queries/members';
 
 export async function generateStaticParams() {
-  return mockMembers.map((m) => ({ id: m.id }));
+  return safeBuildtimeQuery(() => getAllMemberIds(), []);
 }
 
 export default async function MemberEditorPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const member = mockMembers.find((m) => m.id === id);
+  const member = await getMemberById(id);
   if (!member) notFound();
 
   return (

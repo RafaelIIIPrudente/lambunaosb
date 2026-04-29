@@ -5,7 +5,8 @@ import { ChevronRight, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ImagePlaceholder } from '@/components/ui/image-placeholder';
-import { mockMembers } from '@/lib/mock/meetings';
+import { safeBuildtimeQuery } from '@/lib/db/queries/_safe';
+import { getAllMemberIds, getMemberById } from '@/lib/db/queries/members';
 
 const POSITION_LABELS: Record<string, string> = {
   mayor: 'Mayor',
@@ -17,7 +18,7 @@ const POSITION_LABELS: Record<string, string> = {
 };
 
 export async function generateStaticParams() {
-  return mockMembers.map((m) => ({ id: m.id }));
+  return safeBuildtimeQuery(() => getAllMemberIds(), []);
 }
 
 const ACTIVITY = [
@@ -28,7 +29,7 @@ const ACTIVITY = [
 
 export default async function MemberDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const member = mockMembers.find((m) => m.id === id);
+  const member = await getMemberById(id);
   if (!member) notFound();
 
   const eyebrowParts = [
