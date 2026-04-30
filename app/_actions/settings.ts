@@ -166,3 +166,28 @@ export async function updateTenantSettings(raw: unknown): Promise<Result<void>> 
     return err(e instanceof Error ? e.message : 'Failed to update tenant.', 'E_UNKNOWN');
   }
 }
+
+export async function signOutOtherSessions(): Promise<Result<void>> {
+  const ctx = await getAuthContext();
+  if (!ctx) return err('You must be signed in.', 'E_UNAUTHORIZED');
+
+  try {
+    const supabase = await createClient();
+    const { error } = await supabase.auth.signOut({ scope: 'others' });
+    if (error) return err(error.message, 'E_SIGN_OUT_FAILED');
+
+    await writeAudit({
+      actorId: ctx.userId,
+      actorRole: ctx.profile.role,
+      action: 'profile.signed_out_others',
+      category: 'security',
+      targetType: 'profile',
+      targetId: ctx.userId,
+      alert: true,
+    });
+
+    return ok(undefined);
+  } catch (e) {
+    return err(e instanceof Error ? e.message : 'Failed to sign out other sessions.', 'E_UNKNOWN');
+  }
+}

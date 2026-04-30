@@ -1,38 +1,106 @@
+import 'server-only';
+
+import { notFound } from 'next/navigation';
+
 import { AdminPageHeader } from '@/components/app/admin-page-header';
-import { Field, FieldInput, FieldSelect } from '@/components/ui/field';
+import { Badge } from '@/components/ui/badge';
+import { requireUser } from '@/lib/auth/require-user';
+import { getCurrentProfile, getCurrentTenant } from '@/lib/db/queries/settings';
+import { cn } from '@/lib/utils';
+import {
+  UI_LOCALE_LABELS,
+  UI_LOCALE_SAMPLES,
+  type UpdateNotificationPreferencesInput,
+  type UpdateProfileInput,
+  type UpdateTenantSettingsInput,
+} from '@/lib/validators/settings';
 
-const SECTIONS = [
-  { id: 'profile', label: 'Profile', active: true },
-  { id: 'password', label: 'Password' },
-  { id: 'notifications', label: 'Notifications' },
-  { id: 'language', label: 'Language' },
-  { id: 'sessions', label: 'Sessions' },
-  { id: 'about', label: 'About' },
-];
-
-const NOTIFS = [
-  { label: 'New citizen query received', email: true, push: true },
-  { label: 'Transcript ready for approval', email: true, push: false },
-  { label: 'Resolution requires my signature', email: true, push: true },
-];
+import { NotificationsForm } from './_notifications-form';
+import { PasswordForm } from './_password-form';
+import { ProfileForm } from './_profile-form';
+import { SessionsSection } from './_sessions-section';
+import { TenantForm } from './_tenant-form';
 
 export const metadata = { title: 'Settings' };
 
-export default function SettingsPage() {
+const ROLE_LABELS: Record<string, string> = {
+  secretary: 'Secretary',
+  vice_mayor: 'Vice Mayor',
+  mayor: 'Mayor',
+  sb_member: 'SB Member',
+  other_lgu: 'Other LGU',
+};
+
+type Section = {
+  id: string;
+  label: string;
+  visible: boolean;
+};
+
+export default async function SettingsPage() {
+  const ctx = await requireUser();
+  const profile = await getCurrentProfile(ctx.userId);
+  if (!profile) notFound();
+
+  const isSecretary = ctx.profile.role === 'secretary';
+  const tenant = isSecretary ? await getCurrentTenant() : null;
+
+  const profileDefaults: UpdateProfileInput = {
+    fullName: profile.fullName,
+    title: profile.title ?? undefined,
+    email: profile.email,
+    phone: profile.phone ?? undefined,
+    uiLocale: profile.uiLocale === 'tl' || profile.uiLocale === 'hil' ? profile.uiLocale : 'en',
+    timeZone: profile.timeZone,
+  };
+
+  const notificationDefaults: UpdateNotificationPreferencesInput = profile.notificationPreferences;
+
+  const tenantDefaults: UpdateTenantSettingsInput | null = tenant
+    ? {
+        displayName: tenant.displayName,
+        contactEmail: tenant.contactEmail,
+        dpoEmail: tenant.dpoEmail,
+        contactPhone: tenant.contactPhone ?? undefined,
+        officeAddress: tenant.officeAddress ?? undefined,
+        officeHoursMd: tenant.officeHoursMd ?? undefined,
+      }
+    : null;
+
+  const sections: Section[] = [
+    { id: 'profile', label: 'Profile', visible: true },
+    { id: 'password', label: 'Password', visible: true },
+    { id: 'notifications', label: 'Notifications', visible: true },
+    { id: 'language', label: 'Language', visible: true },
+    { id: 'sessions', label: 'Sessions', visible: true },
+    { id: 'organization', label: 'Organization', visible: isSecretary },
+    { id: 'about', label: 'About', visible: true },
+  ].filter((s) => s.visible);
+
+  const localeSample = UI_LOCALE_SAMPLES[profileDefaults.uiLocale];
+
   return (
     <div>
-      <AdminPageHeader title="Settings" />
+      <AdminPageHeader
+        title="Settings"
+        accessory={
+          <Badge variant="outline" className="h-7 px-3">
+            {ROLE_LABELS[ctx.profile.role] ?? ctx.profile.role}
+          </Badge>
+        }
+      />
 
       <div className="grid gap-8 md:grid-cols-[180px_1fr]">
-        {/* Left nav */}
-        <nav aria-label="Settings sections">
+        <nav aria-label="Settings sections" className="md:sticky md:top-20 md:h-fit">
           <ul className="flex flex-col gap-0.5">
-            {SECTIONS.map((s) => (
+            {sections.map((s) => (
               <li key={s.id}>
                 <a
                   href={`#${s.id}`}
-                  aria-current={s.active ? 'true' : undefined}
-                  className="hover:bg-paper-2 aria-[current=true]:bg-rust/10 aria-[current=true]:text-rust font-script flex h-9 items-center rounded-md px-3 text-base transition-colors"
+                  className={cn(
+                    'hover:bg-paper-2 flex h-9 items-center rounded-md px-3 transition-colors',
+                    'text-ink-soft hover:text-ink font-script text-base',
+                  )}
                 >
                   {s.label}
                 </a>
@@ -42,94 +110,140 @@ export default function SettingsPage() {
         </nav>
 
         <div className="flex flex-col gap-8">
-          {/* Profile */}
-          <section id="profile" className="border-ink/20 rounded-md border p-6">
-            <p className="text-rust mb-5 font-mono text-[10px] font-semibold tracking-[0.18em] uppercase">
+          <section
+            id="profile"
+            aria-labelledby="profile-heading"
+            className="border-ink/15 scroll-mt-20 rounded-md border p-6"
+          >
+            <p
+              id="profile-heading"
+              className="text-rust mb-4 font-mono text-[10px] font-semibold tracking-[0.18em] uppercase"
+            >
               Profile
             </p>
-            <div className="grid gap-4 md:grid-cols-[160px_1fr_1fr]">
-              <div className="bg-paper-3 border-ink/20 row-span-3 flex aspect-square items-center justify-center rounded-md border border-dashed">
-                <span className="text-ink-faint font-mono text-xs">[ Photo ]</span>
-              </div>
-              <Field label="Full name">
-                <FieldInput defaultValue="[Secretary Name]" />
-              </Field>
-              <Field label="Title">
-                <FieldInput defaultValue="Secretary to the Sangguniang Bayan" />
-              </Field>
-              <Field label="Email">
-                <FieldInput type="email" defaultValue="sec@lambunao.gov.ph" />
-              </Field>
-              <Field label="Phone">
-                <FieldInput defaultValue="(033) 333-1234" />
-              </Field>
-              <Field label="UI language">
-                <FieldSelect defaultValue="en">
-                  <option value="en">English</option>
-                  <option value="tl">Tagalog</option>
-                  <option value="hil">Hiligaynon</option>
-                </FieldSelect>
-              </Field>
-              <Field label="Time zone">
-                <FieldSelect defaultValue="Asia/Manila">
-                  <option value="Asia/Manila">UTC+08 (Manila)</option>
-                </FieldSelect>
-              </Field>
-            </div>
+            <ProfileForm defaults={profileDefaults} />
           </section>
 
-          {/* Password */}
-          <section id="password" className="border-ink/20 rounded-md border p-6">
-            <p className="text-rust mb-5 font-mono text-[10px] font-semibold tracking-[0.18em] uppercase">
+          <section
+            id="password"
+            aria-labelledby="password-heading"
+            className="border-ink/15 scroll-mt-20 rounded-md border p-6"
+          >
+            <p
+              id="password-heading"
+              className="text-rust mb-4 font-mono text-[10px] font-semibold tracking-[0.18em] uppercase"
+            >
               Password
             </p>
-            <div className="grid gap-4 md:grid-cols-2">
-              <Field label="Current password" className="md:col-span-2 md:max-w-md">
-                <FieldInput type="password" placeholder="••••••••" />
-              </Field>
-              <Field label="New password">
-                <FieldInput type="password" placeholder="••••••••" />
-              </Field>
-              <Field label="Confirm new">
-                <FieldInput type="password" placeholder="••••••••" />
-              </Field>
-            </div>
-            <p className="text-ink-faint mt-4 text-xs italic">
-              ≥ 12 chars · 1 number · 1 symbol · not reused. Sessions on other devices will sign
-              out.
+            <PasswordForm />
+          </section>
+
+          <section
+            id="notifications"
+            aria-labelledby="notifications-heading"
+            className="border-ink/15 scroll-mt-20 rounded-md border p-6"
+          >
+            <p
+              id="notifications-heading"
+              className="text-rust mb-4 font-mono text-[10px] font-semibold tracking-[0.18em] uppercase"
+            >
+              Notifications
+            </p>
+            <NotificationsForm defaults={notificationDefaults} />
+          </section>
+
+          <section
+            id="language"
+            aria-labelledby="language-heading"
+            className="border-ink/15 scroll-mt-20 rounded-md border p-6"
+          >
+            <p
+              id="language-heading"
+              className="text-rust mb-4 font-mono text-[10px] font-semibold tracking-[0.18em] uppercase"
+            >
+              Language
+            </p>
+            <p className="text-ink-soft mb-2 text-sm">
+              Your current UI language is{' '}
+              <span className="text-ink font-medium">
+                {UI_LOCALE_LABELS[profileDefaults.uiLocale]}
+              </span>
+              . Change it in the Profile section above.
+            </p>
+            <p className="text-ink-faint border-ink/15 rounded-md border border-dashed p-3 text-sm italic">
+              {localeSample}
+            </p>
+            <p className="text-ink-faint mt-3 text-xs italic">
+              Translation coverage is in progress. Until next-intl is wired, all admin strings
+              render in English regardless of this preference; your choice is recorded for when it
+              ships.
             </p>
           </section>
 
-          {/* Notifications */}
-          <section id="notifications" className="border-ink/20 rounded-md border p-6">
-            <p className="text-rust mb-5 font-mono text-[10px] font-semibold tracking-[0.18em] uppercase">
-              Notifications
+          <section
+            id="sessions"
+            aria-labelledby="sessions-heading"
+            className="border-ink/15 scroll-mt-20 rounded-md border p-6"
+          >
+            <p
+              id="sessions-heading"
+              className="text-rust mb-4 font-mono text-[10px] font-semibold tracking-[0.18em] uppercase"
+            >
+              Sessions
             </p>
-            <ul className="flex flex-col">
-              {NOTIFS.map((n) => (
-                <li
-                  key={n.label}
-                  className="border-ink/15 flex items-center justify-between border-b border-dashed py-3 last:border-0"
+            <SessionsSection />
+          </section>
+
+          {isSecretary && tenantDefaults && (
+            <section
+              id="organization"
+              aria-labelledby="organization-heading"
+              className="border-ink/15 scroll-mt-20 rounded-md border p-6"
+            >
+              <p
+                id="organization-heading"
+                className="text-rust mb-4 font-mono text-[10px] font-semibold tracking-[0.18em] uppercase"
+              >
+                Organization · Secretary only
+              </p>
+              <TenantForm defaults={tenantDefaults} />
+            </section>
+          )}
+
+          <section
+            id="about"
+            aria-labelledby="about-heading"
+            className="border-ink/15 scroll-mt-20 rounded-md border p-6"
+          >
+            <p
+              id="about-heading"
+              className="text-rust mb-4 font-mono text-[10px] font-semibold tracking-[0.18em] uppercase"
+            >
+              About
+            </p>
+            <dl className="text-ink-soft grid grid-cols-[140px_1fr] gap-y-2 text-sm">
+              <dt className="text-ink-faint">Application</dt>
+              <dd>SB Lambunao admin console</dd>
+              <dt className="text-ink-faint">Environment</dt>
+              <dd className="font-mono text-xs">{process.env.NODE_ENV}</dd>
+              <dt className="text-ink-faint">Support</dt>
+              <dd>
+                <a href="mailto:it@lambunao.gov.ph" className="text-rust hover:underline">
+                  it@lambunao.gov.ph
+                </a>
+              </dd>
+              <dt className="text-ink-faint">Data privacy</dt>
+              <dd>
+                Per RA 10173. Reach the DPO at{' '}
+                <a
+                  href={`mailto:${tenant?.dpoEmail ?? 'dpo@lambunao.gov.ph'}`}
+                  className="text-rust hover:underline"
                 >
-                  <span className="text-ink font-script text-base italic">{n.label}</span>
-                  <span className="flex gap-4 text-xs">
-                    <span className="text-rust inline-flex items-center gap-1.5 font-mono">
-                      <span className="bg-rust size-1.5 rounded-full" /> on
-                    </span>
-                    <span
-                      className={`inline-flex items-center gap-1.5 font-mono ${
-                        n.push ? 'text-gold' : 'text-ink-faint'
-                      }`}
-                    >
-                      <span
-                        className={`size-1.5 rounded-full ${n.push ? 'bg-gold' : 'bg-ink-ghost'}`}
-                      />
-                      {n.push ? 'on' : '—'}
-                    </span>
-                  </span>
-                </li>
-              ))}
-            </ul>
+                  {tenant?.dpoEmail ?? 'dpo@lambunao.gov.ph'}
+                </a>
+                .
+              </dd>
+            </dl>
           </section>
         </div>
       </div>
