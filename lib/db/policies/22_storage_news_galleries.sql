@@ -18,7 +18,9 @@ create policy "news_galleries_insert_authors" on storage.objects
   with check (
     bucket_id = 'news-galleries'
     and (storage.foldername(name))[1] = public.current_tenant_id()::text
-    and public.current_user_role() in ('secretary', 'mayor', 'vice_mayor', 'sb_member')
+    and public.current_user_role() in (
+      'secretary', 'mayor', 'vice_mayor', 'sb_member', 'skmf_president', 'liga_president'
+    )
   );
 
 -- Bucket-level enforcement: pre-compressed WebP only, max 500 KB per variant.

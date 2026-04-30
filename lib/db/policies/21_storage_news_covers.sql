@@ -15,14 +15,16 @@ create policy "news_covers_select_tenant" on storage.objects
     and (storage.foldername(name))[1] = public.current_tenant_id()::text
   );
 
--- AUTHOR_ROLES (secretary, mayor, vice_mayor, sb_member) can upload covers
--- scoped to their tenant.
+-- AUTHOR_ROLES (secretary, mayor, vice_mayor, sb_member, skmf_president,
+-- liga_president) can upload covers scoped to their tenant.
 create policy "news_covers_insert_authors" on storage.objects
   for insert to authenticated
   with check (
     bucket_id = 'news-covers'
     and (storage.foldername(name))[1] = public.current_tenant_id()::text
-    and public.current_user_role() in ('secretary', 'mayor', 'vice_mayor', 'sb_member')
+    and public.current_user_role() in (
+      'secretary', 'mayor', 'vice_mayor', 'sb_member', 'skmf_president', 'liga_president'
+    )
   );
 
 -- Append-only at the storage level — no UPDATE / DELETE policies.

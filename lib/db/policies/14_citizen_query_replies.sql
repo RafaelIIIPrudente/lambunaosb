@@ -20,7 +20,9 @@ create policy "citizen_query_replies_insert_admin" on public.citizen_query_repli
   with check (
     tenant_id = public.current_tenant_id()
     and author_id = auth.uid()
-    and public.current_user_role() in ('secretary', 'mayor', 'vice_mayor', 'sb_member')
+    and public.current_user_role() in (
+      'secretary', 'mayor', 'vice_mayor', 'sb_member', 'skmf_president', 'liga_president'
+    )
   );
 
 -- Replies are immutable once sent (audit trail).

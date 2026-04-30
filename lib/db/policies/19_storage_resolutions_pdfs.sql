@@ -21,7 +21,9 @@ create policy "resolutions_pdfs_insert_authors" on storage.objects
   with check (
     bucket_id = 'resolutions-pdfs'
     and (storage.foldername(name))[1] = public.current_tenant_id()::text
-    and public.current_user_role() in ('secretary', 'mayor', 'vice_mayor', 'sb_member')
+    and public.current_user_role() in (
+      'secretary', 'mayor', 'vice_mayor', 'sb_member', 'skmf_president', 'liga_president'
+    )
   );
 
 -- Append-only at the storage level too — no UPDATE / DELETE policies.
