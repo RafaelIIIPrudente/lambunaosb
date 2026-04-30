@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { and, asc, desc, eq, isNull } from 'drizzle-orm';
+import { and, asc, desc, eq, ilike, isNull, sql } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import {
@@ -32,6 +32,8 @@ export type GetResolutionsListOptions = {
   status?: ResolutionStatus;
   year?: number;
   publicOnly?: boolean;
+  q?: string;
+  primarySponsorId?: string;
 };
 
 export async function getResolutionsList(
@@ -42,6 +44,13 @@ export async function getResolutionsList(
   if (options.status) conditions.push(eq(resolutions.status, options.status));
   if (options.year) conditions.push(eq(resolutions.year, options.year));
   if (options.publicOnly) conditions.push(eq(resolutions.status, 'published'));
+  if (options.primarySponsorId) {
+    conditions.push(eq(resolutions.primarySponsorId, options.primarySponsorId));
+  }
+  if (options.q && options.q.trim().length > 0) {
+    const term = `%${options.q.trim()}%`;
+    conditions.push(ilike(resolutions.title, term));
+  }
 
   const rows = await db
     .select({
@@ -168,4 +177,56 @@ export async function getResolutionVersions(resolutionId: string): Promise<Resol
       ),
     )
     .orderBy(asc(resolutionVersions.versionNumber));
+}
+
+export async function getResolutionVersionById(
+  resolutionId: string,
+  versionId: string,
+): Promise<ResolutionVersion | null> {
+  const tenantId = await getCurrentTenantId();
+  const [row] = await db
+    .select()
+    .from(resolutionVersions)
+    .where(
+      and(
+        eq(resolutionVersions.tenantId, tenantId),
+        eq(resolutionVersions.resolutionId, resolutionId),
+        eq(resolutionVersions.id, versionId),
+      ),
+    )
+    .limit(1);
+  return row ?? null;
+}
+
+export async function getResolutionYears(): Promise<number[]> {
+  const tenantId = await getCurrentTenantId();
+  const rows = await db
+    .selectDistinct({ year: resolutions.year })
+    .from(resolutions)
+    .where(and(eq(resolutions.tenantId, tenantId), isNull(resolutions.deletedAt)))
+    .orderBy(desc(resolutions.year));
+  return rows.map((r) => r.year);
+}
+
+export async function getResolutionSponsors(): Promise<
+  { id: string; label: string; count: number }[]
+> {
+  const tenantId = await getCurrentTenantId();
+  const rows = await db
+    .select({
+      id: sbMembers.id,
+      fullName: sbMembers.fullName,
+      honorific: sbMembers.honorific,
+      count: sql<number>`count(${resolutions.id})::int`,
+    })
+    .from(sbMembers)
+    .innerJoin(resolutions, eq(resolutions.primarySponsorId, sbMembers.id))
+    .where(and(eq(resolutions.tenantId, tenantId), isNull(resolutions.deletedAt)))
+    .groupBy(sbMembers.id, sbMembers.fullName, sbMembers.honorific)
+    .orderBy(asc(sbMembers.fullName));
+  return rows.map((r) => ({
+    id: r.id,
+    label: `${r.honorific ?? 'Hon.'} ${r.fullName}`,
+    count: r.count,
+  }));
 }
