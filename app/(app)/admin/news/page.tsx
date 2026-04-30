@@ -1,168 +1,238 @@
-import { Edit3, Eye, Globe, Lock, Pin, Trash2 } from 'lucide-react';
+import 'server-only';
+
+import Image from 'next/image';
+import Link from 'next/link';
+import { format } from 'date-fns';
+import { ArrowRight, Edit3, ImageIcon, Pin, Plus, X } from 'lucide-react';
 
 import { AdminPageHeader } from '@/components/app/admin-page-header';
-import { ImagePlaceholder } from '@/components/ui/image-placeholder';
-
-const POSTS = [
-  {
-    id: 'p1',
-    author: '[Secretary]',
-    age: '3h ago',
-    visibility: 'public' as const,
-    title: 'Free vaccination drive — Brgy. Cabatangan, June 22',
-    body: 'Brgy. Cabatangan will host a free vaccination drive on June 22 from 8 AM to noon at the covered court. Open to all residents bringing valid ID.',
-    cover: true,
-    views: 412,
-    likes: 34,
-    shares: 12,
-  },
-  {
-    id: 'p2',
-    author: '[Secretary]',
-    age: 'Yesterday',
-    visibility: 'admin_only' as const,
-    title: 'Notice: Session Hall closed Saturday for re-roofing',
-    body: 'All sessions scheduled for the morning of June 21 are moved to the Annex. Recordings continue as normal.',
-    cover: false,
-    views: 412,
-  },
-];
-
-const FILTERS = [
-  { label: 'All posts', count: 47, active: true },
-  { label: 'Public', count: 38 },
-  { label: 'Admin only', count: 9 },
-  { label: 'Drafts', count: 2 },
-  { label: 'Pinned', count: 1 },
-];
-
-const POST_TYPES = ['Announcement', 'Notice', 'Resolution highlight', 'Event', 'Press release'];
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardDescription, CardEyebrow, CardFooter, CardTitle } from '@/components/ui/card';
+import { getAdminNewsList } from '@/lib/db/queries/news';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { cn } from '@/lib/utils';
+import {
+  NEWS_CATEGORY_LABELS,
+  NEWS_STATUS_LABELS,
+  NEWS_STATUSES,
+  NEWS_VISIBILITY_LABELS,
+  type NewsStatusValue,
+} from '@/lib/validators/news-post';
 
 export const metadata = { title: 'News' };
 
-export default function NewsAdminPage() {
-  return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
-      <div>
-        <AdminPageHeader title="News & Updates" />
-        <ul className="flex flex-col gap-5">
-          {POSTS.map((post) => (
-            <li key={post.id}>
-              <article className="border-ink/20 bg-paper rounded-md border p-5">
-                <header className="flex items-start gap-3">
-                  <span
-                    aria-hidden="true"
-                    className="bg-paper-3 border-ink/15 inline-flex size-9 shrink-0 items-center justify-center rounded-full border"
-                  />
-                  <div className="flex-1">
-                    <p className="text-ink font-medium">{post.author}</p>
-                    <p className="text-ink-faint mt-0.5 inline-flex items-center gap-1.5 font-mono text-[11px]">
-                      {post.age}
-                      <span aria-hidden="true">·</span>
-                      {post.visibility === 'public' ? (
-                        <>
-                          <Globe className="size-3" aria-hidden="true" />
-                          Public
-                        </>
-                      ) : (
-                        <>
-                          <Lock className="size-3" aria-hidden="true" />
-                          Admin only
-                        </>
-                      )}
-                    </p>
-                  </div>
-                  <div className="flex gap-1">
-                    <button
-                      type="button"
-                      className="text-ink-faint hover:text-ink p-1"
-                      aria-label="Edit"
-                    >
-                      <Edit3 className="size-4" />
-                    </button>
-                    <button
-                      type="button"
-                      className="text-ink-faint hover:text-warn p-1"
-                      aria-label="Delete"
-                    >
-                      <Trash2 className="size-4" />
-                    </button>
-                  </div>
-                </header>
+const COVER_BUCKET = 'news-covers';
+const COVER_SIGNED_URL_TTL_SECONDS = 60 * 60;
 
-                <h2 className="text-ink font-display mt-4 text-xl font-bold">{post.title}</h2>
-                <p className="text-ink-soft mt-2 text-sm leading-relaxed italic">{post.body}</p>
+type FilterValue = NewsStatusValue | 'all';
 
-                {post.cover && (
-                  <div className="mt-4">
-                    <ImagePlaceholder ratio="16:9" />
-                  </div>
-                )}
+const STATUS_BADGE_VARIANT: Record<
+  NewsStatusValue,
+  'success' | 'outline' | 'destructive' | 'warn'
+> = {
+  draft: 'warn',
+  scheduled: 'outline',
+  published: 'success',
+  archived: 'destructive',
+};
 
-                <footer className="text-ink-faint mt-4 flex items-center justify-between font-mono text-[11px]">
-                  <p className="inline-flex items-center gap-3">
-                    <span className="inline-flex items-center gap-1">
-                      <Eye className="size-3" /> {post.views} views
-                    </span>
-                    {post.likes !== undefined && <span>{post.likes} likes</span>}
-                    {post.shares !== undefined && <span>{post.shares} shares</span>}
-                  </p>
-                  <button
-                    type="button"
-                    className="border-ink/30 text-ink hover:bg-paper-2 font-script rounded-pill inline-flex h-7 items-center gap-1.5 border border-dashed px-3 text-sm transition-colors"
-                  >
-                    <Pin className="size-3" aria-hidden="true" />
-                    Pin
-                  </button>
-                </footer>
-              </article>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      <aside className="flex flex-col gap-5">
-        <RailCard label="Filters">
-          <ul className="flex flex-col gap-1">
-            {FILTERS.map((f) => (
-              <li key={f.label}>
-                <button
-                  type="button"
-                  aria-current={f.active ? 'true' : undefined}
-                  className="hover:bg-paper-2 aria-[current=true]:bg-rust/10 aria-[current=true]:text-rust flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left transition-colors"
-                >
-                  <span className="font-script text-base">{f.label}</span>
-                  <span className="text-ink-faint font-mono text-[11px]">({f.count})</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </RailCard>
-
-        <RailCard label="Post types">
-          <ul className="flex flex-col">
-            {POST_TYPES.map((t) => (
-              <li
-                key={t}
-                className="text-ink-soft hover:text-ink font-script border-ink/10 border-b border-dashed py-2 text-base last:border-0"
-              >
-                {t}
-              </li>
-            ))}
-          </ul>
-        </RailCard>
-      </aside>
-    </div>
-  );
+function isFilterValue(value: string | undefined): value is FilterValue {
+  if (!value) return false;
+  if (value === 'all') return true;
+  return (NEWS_STATUSES as readonly string[]).includes(value);
 }
 
-function RailCard({ label, children }: { label: string; children: React.ReactNode }) {
+export default async function NewsAdminPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string }>;
+}) {
+  const params = await searchParams;
+  const filter: FilterValue = isFilterValue(params.status) ? params.status : 'all';
+
+  const allRows = await getAdminNewsList();
+  const rows = filter === 'all' ? allRows : allRows.filter((r) => r.status === filter);
+
+  const adminClient = createAdminClient();
+  const signedUrlByPostId = new Map<string, string>();
+  await Promise.all(
+    rows
+      .filter((r) => r.coverStoragePath)
+      .map(async (r) => {
+        const { data } = await adminClient.storage
+          .from(COVER_BUCKET)
+          .createSignedUrl(r.coverStoragePath!, COVER_SIGNED_URL_TTL_SECONDS);
+        if (data?.signedUrl) signedUrlByPostId.set(r.id, data.signedUrl);
+      }),
+  );
+
+  const filterOptions: { value: FilterValue; label: string; count: number }[] = [
+    { value: 'all', label: 'All', count: allRows.length },
+    {
+      value: 'draft',
+      label: 'Drafts',
+      count: allRows.filter((r) => r.status === 'draft').length,
+    },
+    {
+      value: 'published',
+      label: 'Published',
+      count: allRows.filter((r) => r.status === 'published').length,
+    },
+    {
+      value: 'archived',
+      label: 'Archived',
+      count: allRows.filter((r) => r.status === 'archived').length,
+    },
+  ];
+
   return (
-    <div className="border-ink/20 rounded-md border p-4">
-      <p className="text-rust mb-3 font-mono text-[10px] font-semibold tracking-[0.18em] uppercase">
-        {label}
-      </p>
-      {children}
+    <div>
+      <AdminPageHeader
+        title="News &amp; updates"
+        accessory={
+          <Button className="font-script text-base" asChild>
+            <Link href="/admin/news/new" aria-label="Create a new news post">
+              <Plus />
+              New post
+            </Link>
+          </Button>
+        }
+      />
+
+      <ul role="group" aria-label="Filter by status" className="mb-6 flex flex-wrap gap-1.5">
+        {filterOptions.map((opt) => {
+          const active = filter === opt.value;
+          return (
+            <li key={opt.value}>
+              <Link
+                href={opt.value === 'all' ? '/admin/news' : `/admin/news?status=${opt.value}`}
+                aria-current={active ? 'page' : undefined}
+                className={cn(
+                  'border-ink/30 text-ink-soft hover:border-ink font-script rounded-pill focus-visible:ring-rust/40 inline-flex h-8 items-center gap-1.5 border px-3 text-sm transition-colors outline-none focus-visible:ring-2',
+                  active && 'bg-rust border-rust text-paper hover:border-rust',
+                )}
+              >
+                {opt.label}
+                <span className="font-mono text-[10px] tabular-nums opacity-75">({opt.count})</span>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+
+      {rows.length === 0 ? (
+        <Card className="max-w-xl">
+          <CardEyebrow>{filter === 'all' ? 'No news posts yet' : 'No matches'}</CardEyebrow>
+          <CardTitle>
+            {filter === 'all'
+              ? 'Nothing has been posted yet.'
+              : `No posts in "${NEWS_STATUS_LABELS[filter as NewsStatusValue]}".`}
+          </CardTitle>
+          <CardDescription>
+            Drafts and published announcements appear here. Start a new one to seed the audit trail.
+          </CardDescription>
+          <CardFooter>
+            {filter === 'all' ? (
+              <Button asChild className="font-medium">
+                <Link href="/admin/news/new">
+                  <Plus />
+                  Create the first post
+                  <ArrowRight />
+                </Link>
+              </Button>
+            ) : (
+              <Button asChild variant="outline" className="font-medium">
+                <Link href="/admin/news">
+                  <X />
+                  Clear filter
+                </Link>
+              </Button>
+            )}
+          </CardFooter>
+        </Card>
+      ) : (
+        <ul className="flex flex-col gap-4">
+          {rows.map((post) => {
+            const coverUrl = signedUrlByPostId.get(post.id);
+            return (
+              <li key={post.id}>
+                <article className="border-ink/15 hover:border-ink/40 grid gap-4 rounded-md border p-4 transition-colors sm:grid-cols-[200px_1fr]">
+                  <div className="bg-paper-2 border-ink/15 relative flex aspect-video items-center justify-center overflow-hidden rounded-md border">
+                    {coverUrl ? (
+                      <Image
+                        src={coverUrl}
+                        alt={`Cover for ${post.title}`}
+                        fill
+                        sizes="(max-width: 640px) 100vw, 200px"
+                        className="object-cover"
+                        unoptimized
+                      />
+                    ) : (
+                      <ImageIcon className="text-ink-faint size-8" aria-hidden="true" />
+                    )}
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <Badge variant={STATUS_BADGE_VARIANT[post.status]}>
+                        {NEWS_STATUS_LABELS[post.status]}
+                      </Badge>
+                      <Badge variant="outline">{NEWS_VISIBILITY_LABELS[post.visibility]}</Badge>
+                      <Badge variant="outline">{NEWS_CATEGORY_LABELS[post.category]}</Badge>
+                      {post.pinned && (
+                        <Badge variant="success" className="inline-flex items-center gap-1">
+                          <Pin className="size-3" aria-hidden="true" />
+                          Pinned
+                        </Badge>
+                      )}
+                    </div>
+
+                    <Link
+                      href={`/admin/news/${post.id}`}
+                      className="text-ink hover:text-rust focus-visible:ring-rust/40 font-display rounded text-lg leading-snug font-semibold outline-none focus-visible:ring-2"
+                    >
+                      {post.title}
+                    </Link>
+
+                    {post.excerpt && (
+                      <p className="text-ink-soft line-clamp-2 text-sm italic">{post.excerpt}</p>
+                    )}
+
+                    <div className="text-ink-faint mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px]">
+                      <span>{post.authorName}</span>
+                      {post.publishedAt && (
+                        <>
+                          <span aria-hidden="true">·</span>
+                          <span>Published {format(post.publishedAt, 'MMM d, yyyy')}</span>
+                        </>
+                      )}
+                    </div>
+
+                    <div className="mt-1 flex flex-wrap gap-1.5">
+                      <Link
+                        href={`/admin/news/${post.id}`}
+                        aria-label={`Open ${post.title}`}
+                        className="border-ink/30 text-ink hover:bg-paper-2 focus-visible:ring-rust/40 font-script rounded-pill inline-flex h-7 items-center gap-1 border border-dashed px-2.5 text-xs outline-none focus-visible:ring-2"
+                      >
+                        Open
+                      </Link>
+                      <Link
+                        href={`/admin/news/${post.id}/edit`}
+                        aria-label={`Edit ${post.title}`}
+                        className="border-ink/30 text-ink hover:bg-paper-2 focus-visible:ring-rust/40 font-script rounded-pill inline-flex h-7 items-center gap-1 border border-dashed px-2.5 text-xs outline-none focus-visible:ring-2"
+                      >
+                        <Edit3 className="size-3" />
+                        Edit
+                      </Link>
+                    </div>
+                  </div>
+                </article>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </div>
   );
 }

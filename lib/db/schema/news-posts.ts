@@ -16,6 +16,12 @@ export const newsCategory = pgEnum('news_category', [
 export const newsStatus = pgEnum('news_status', ['draft', 'scheduled', 'published', 'archived']);
 export const newsVisibility = pgEnum('news_visibility', ['public', 'admin_only']);
 
+export type NewsPostPhoto = {
+  storagePath: string;
+  altText: string | null;
+  byteSize: number | null;
+};
+
 export const newsPosts = pgTable('news_posts', {
   id: uuid('id')
     .primaryKey()
@@ -33,6 +39,8 @@ export const newsPosts = pgTable('news_posts', {
   pinned: boolean('pinned').notNull().default(false),
   tags: jsonb('tags').$type<string[]>().notNull().default([]),
   coverStoragePath: text('cover_storage_path'),
+  // Photo gallery — array order is display order. Max 15 enforced at the action layer.
+  photos: jsonb('photos').$type<NewsPostPhoto[]>().notNull().default([]),
   publishedAt: timestamp('published_at', { withTimezone: true }),
   scheduledAt: timestamp('scheduled_at', { withTimezone: true }),
   authorId: uuid('author_id').references(() => profiles.id, { onDelete: 'set null' }),
