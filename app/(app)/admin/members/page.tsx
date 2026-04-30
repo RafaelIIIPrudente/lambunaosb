@@ -1,98 +1,181 @@
+import 'server-only';
+
+import Image from 'next/image';
 import Link from 'next/link';
-import { Edit3, Eye, Filter, SortDesc } from 'lucide-react';
+import { and, asc, eq, isNull } from 'drizzle-orm';
+import { ArrowRight, Edit3, Eye, Plus } from 'lucide-react';
 
 import { AdminPageHeader } from '@/components/app/admin-page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ImagePlaceholder } from '@/components/ui/image-placeholder';
-import { getActiveMembers } from '@/lib/db/queries/members';
-
-const POSITION_LABELS: Record<string, string> = {
-  mayor: 'Mayor',
-  vice_mayor: 'Vice Mayor / Presiding',
-  sb_member: 'SB Member',
-  sk_chairperson: 'SK Chairperson',
-  liga_president: 'Liga President',
-  ipmr: 'IPMR',
-};
+import { Card, CardDescription, CardEyebrow, CardFooter, CardTitle } from '@/components/ui/card';
+import { db } from '@/lib/db';
+import { getCurrentTenantId } from '@/lib/db/queries/tenant';
+import { sbMembers } from '@/lib/db/schema';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { cn } from '@/lib/utils';
+import { MEMBER_POSITION_LABELS } from '@/lib/validators/member';
 
 export const metadata = { title: 'SB Members' };
 
+const PORTRAIT_BUCKET = 'members-portraits';
+const PORTRAIT_SIGNED_URL_TTL_SECONDS = 60 * 60;
+
 export default async function MembersAdminPage() {
-  const members = await getActiveMembers({ excludePositions: ['mayor'] });
-  // Show up to 8 in the grid; first card gets the canonical "Health & Sanit. + Education" badge pair
-  // when its committee data is empty so the layout matches the mockup.
-  const CARDS = members.slice(0, 8).map((m, i) => ({
-    ...m,
-    badges:
-      m.committees.length > 0
-        ? m.committees.slice(0, 2)
-        : i === 0
-          ? ['Health & Sanit.', 'Education']
-          : [],
-  }));
+  const tenantId = await getCurrentTenantId();
+  // Local query (not via getActiveMembers) so the admin list shows inactive
+  // members too — only archived (deletedAt) rows are excluded.
+  const rows = await db
+    .select()
+    .from(sbMembers)
+    .where(and(eq(sbMembers.tenantId, tenantId), isNull(sbMembers.deletedAt)))
+    .orderBy(asc(sbMembers.sortOrder), asc(sbMembers.fullName));
+
+  // Generate signed URLs in parallel only for members with portraits.
+  const adminClient = createAdminClient();
+  const signedUrlByMemberId = new Map<string, string>();
+  await Promise.all(
+    rows
+      .filter((m) => m.photoStoragePath)
+      .map(async (m) => {
+        const { data } = await adminClient.storage
+          .from(PORTRAIT_BUCKET)
+          .createSignedUrl(m.photoStoragePath!, PORTRAIT_SIGNED_URL_TTL_SECONDS);
+        if (data?.signedUrl) signedUrlByMemberId.set(m.id, data.signedUrl);
+      }),
+  );
+
+  const activeCount = rows.filter((r) => r.active).length;
+  const total = rows.length;
 
   return (
     <div>
       <AdminPageHeader
         title="SB Members"
         accessory={
-          <>
-            <Button variant="outline" className="font-script text-base">
-              <Filter />
-              Filter
-            </Button>
-            <Button variant="outline" className="font-script text-base">
-              <SortDesc />
-              Order by seniority
-            </Button>
-          </>
+          <Button className="font-script text-base" asChild>
+            <Link href="/admin/members/new" aria-label="Add a new SB member">
+              <Plus />
+              Add member
+            </Link>
+          </Button>
         }
       />
       <p className="text-ink-faint -mt-4 mb-6 font-mono text-xs">
-        8 of 8 seats filled · term 2025–2028
+        {activeCount} of {total} active · roster sorted by sort order, then name
       </p>
 
-      <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {CARDS.map((m, i) => (
-          <li key={m.id}>
-            <article className="border-ink/20 hover:border-ink/40 rounded-md border p-4 transition-colors">
-              <ImagePlaceholder ratio="3:4" label={`Member photo`} />
-              <div className="mt-3 flex flex-col gap-1.5">
-                <h3 className="text-ink font-display text-base font-semibold">
-                  {m.honorific} [Member {i + 1}]
-                </h3>
-                <p className="text-rust font-mono text-[10px] tracking-[0.16em] uppercase">
-                  {POSITION_LABELS[m.position]} · {m.termStartYear}–{m.termEndYear}
-                </p>
-                <div className="mt-1 flex flex-wrap gap-1">
-                  {m.badges.map((b) => (
-                    <Badge key={b} variant="outline" className="h-5 px-1.5 text-[9px]">
-                      {b}
-                    </Badge>
-                  ))}
-                </div>
-                <div className="mt-2 flex gap-1.5">
-                  <Link
-                    href={`/admin/members/${m.id}`}
-                    className="border-ink/30 text-ink hover:bg-paper-2 font-script rounded-pill inline-flex h-7 items-center gap-1 border border-dashed px-2.5 text-xs"
-                  >
-                    <Edit3 className="size-3" />
-                    Edit
-                  </Link>
-                  <Link
-                    href={`/members/${m.id}`}
-                    className="border-ink/30 text-ink hover:bg-paper-2 font-script rounded-pill inline-flex h-7 items-center gap-1 border border-dashed px-2.5 text-xs"
-                  >
-                    <Eye className="size-3" />
-                    Public
-                  </Link>
-                </div>
-              </div>
-            </article>
-          </li>
-        ))}
-      </ul>
+      {rows.length === 0 ? (
+        <Card className="max-w-xl">
+          <CardEyebrow>Roster is empty</CardEyebrow>
+          <CardTitle>No members on file yet.</CardTitle>
+          <CardDescription>
+            Run <code className="font-mono">pnpm db:seed</code> for the initial roster, or add
+            members one by one from here.
+          </CardDescription>
+          <CardFooter>
+            <Button asChild className="font-medium">
+              <Link href="/admin/members/new">
+                <Plus />
+                Add the first member
+                <ArrowRight />
+              </Link>
+            </Button>
+          </CardFooter>
+        </Card>
+      ) : (
+        <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {rows.map((m) => {
+            const initials = m.fullName
+              .split(/\s+/)
+              .map((p) => p.charAt(0))
+              .filter(Boolean)
+              .slice(0, 2)
+              .join('')
+              .toUpperCase();
+            const portraitUrl = signedUrlByMemberId.get(m.id);
+            return (
+              <li key={m.id}>
+                <article
+                  className={cn(
+                    'border-ink/15 hover:border-ink/40 flex flex-col rounded-md border p-4 transition-colors',
+                    !m.active && 'opacity-70',
+                  )}
+                >
+                  <div className="bg-paper-2 border-ink/15 relative flex aspect-[3/4] items-center justify-center overflow-hidden rounded-md border">
+                    {portraitUrl ? (
+                      <Image
+                        src={portraitUrl}
+                        alt={`Portrait of ${m.fullName}`}
+                        fill
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                        className="object-cover"
+                        unoptimized
+                      />
+                    ) : (
+                      <span
+                        aria-hidden="true"
+                        className="bg-paper border-ink/25 text-ink-soft font-script flex size-20 items-center justify-center rounded-full border text-2xl"
+                      >
+                        {initials}
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-3 flex flex-1 flex-col gap-1.5">
+                    <h3 className="text-ink font-display text-base font-semibold">
+                      {m.honorific} {m.fullName}
+                    </h3>
+                    <p className="text-rust font-mono text-[10px] tracking-[0.16em] uppercase">
+                      {MEMBER_POSITION_LABELS[m.position]} · {m.termStartYear}–{m.termEndYear}
+                    </p>
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {!m.active && (
+                        <Badge variant="destructive" className="h-5 px-1.5 text-[9px]">
+                          Inactive
+                        </Badge>
+                      )}
+                      {!m.showOnPublic && (
+                        <Badge variant="warn" className="h-5 px-1.5 text-[9px]">
+                          Hidden
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="mt-auto flex gap-1.5 pt-2">
+                      <Link
+                        href={`/admin/members/${m.id}`}
+                        aria-label={`Open ${m.fullName}`}
+                        className="border-ink/30 text-ink hover:bg-paper-2 focus-visible:ring-rust/40 font-script rounded-pill inline-flex h-7 items-center gap-1 border border-dashed px-2.5 text-xs outline-none focus-visible:ring-2"
+                      >
+                        Open
+                      </Link>
+                      <Link
+                        href={`/admin/members/${m.id}/edit`}
+                        aria-label={`Edit ${m.fullName}`}
+                        className="border-ink/30 text-ink hover:bg-paper-2 focus-visible:ring-rust/40 font-script rounded-pill inline-flex h-7 items-center gap-1 border border-dashed px-2.5 text-xs outline-none focus-visible:ring-2"
+                      >
+                        <Edit3 className="size-3" />
+                        Edit
+                      </Link>
+                      {m.showOnPublic && m.active && (
+                        <Link
+                          href={`/members/${m.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label={`Open public profile of ${m.fullName}`}
+                          className="border-ink/30 text-ink hover:bg-paper-2 focus-visible:ring-rust/40 font-script rounded-pill inline-flex h-7 items-center gap-1 border border-dashed px-2.5 text-xs outline-none focus-visible:ring-2"
+                        >
+                          <Eye className="size-3" />
+                          Public
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                </article>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </div>
   );
 }

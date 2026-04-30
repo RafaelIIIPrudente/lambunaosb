@@ -1,147 +1,199 @@
+import 'server-only';
+
+import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ChevronRight, Globe, Plus, Trash2, Upload, X } from 'lucide-react';
+import { ChevronRight, Eye, Mail, Phone } from 'lucide-react';
 
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Field, FieldInput, FieldSelect } from '@/components/ui/field';
-import { safeBuildtimeQuery } from '@/lib/db/queries/_safe';
-import { getAllMemberIds, getMemberById } from '@/lib/db/queries/members';
+import { requireUser } from '@/lib/auth/require-user';
+import { getMemberById } from '@/lib/db/queries/members';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { COMMITTEE_ROLE_LABELS, MEMBER_POSITION_LABELS } from '@/lib/validators/member';
 
-export async function generateStaticParams() {
-  return safeBuildtimeQuery(() => getAllMemberIds(), []);
-}
+import { MemberActionsBar } from './_actions-bar';
 
-export default async function MemberEditorPage({ params }: { params: Promise<{ id: string }> }) {
+export const metadata = { title: 'Member detail' };
+
+const PORTRAIT_BUCKET = 'members-portraits';
+const PORTRAIT_SIGNED_URL_TTL_SECONDS = 60 * 60;
+
+export default async function MemberDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const ctx = await requireUser();
+
   const member = await getMemberById(id);
   if (!member) notFound();
 
+  const signedDownloadUrl = member.photoStoragePath
+    ? await createAdminClient()
+        .storage.from(PORTRAIT_BUCKET)
+        .createSignedUrl(member.photoStoragePath, PORTRAIT_SIGNED_URL_TTL_SECONDS)
+        .then((res) => res.data?.signedUrl ?? null)
+    : null;
+
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
-        <nav
-          aria-label="Breadcrumb"
-          className="text-ink-faint flex items-center gap-1.5 font-mono text-xs"
-        >
-          <Link href="/admin/members" className="hover:text-rust">
-            SB Members
-          </Link>
-          <ChevronRight className="size-3" aria-hidden="true" />
-          <Link href={`/admin/members/${id}`} className="hover:text-rust">
-            {member.honorific} [Member 1]
-          </Link>
-          <ChevronRight className="size-3" aria-hidden="true" />
-          <span className="text-ink">Edit</span>
-        </nav>
-        <div className="flex gap-2">
-          <Button variant="outline" className="font-script text-base">
-            Cancel
-          </Button>
-          <Button className="font-script text-base">✓ Save changes</Button>
+      <nav
+        aria-label="Breadcrumb"
+        className="text-ink-faint mb-2 flex items-center gap-1.5 font-mono text-xs"
+      >
+        <Link href="/admin/members" className="hover:text-rust">
+          SB Members
+        </Link>
+        <ChevronRight className="size-3" aria-hidden="true" />
+        <span className="text-ink">
+          {member.honorific} {member.fullName}
+        </span>
+      </nav>
+
+      <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-ink font-script text-3xl leading-tight">
+            {member.honorific} {member.fullName}
+          </h1>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <Badge variant={member.active ? 'success' : 'destructive'}>
+              {member.active ? 'Active' : 'Inactive'}
+            </Badge>
+            <Badge variant="outline">{MEMBER_POSITION_LABELS[member.position]}</Badge>
+            <Badge variant="outline">
+              Term {member.termStartYear}–{member.termEndYear}
+            </Badge>
+            {member.seniority && <Badge variant="outline">{member.seniority}</Badge>}
+            {!member.showOnPublic && <Badge variant="warn">Hidden from public</Badge>}
+          </div>
         </div>
+        <Button variant="outline" size="sm" asChild className="font-medium">
+          <Link
+            href={`/members/${member.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Open public profile in new tab"
+          >
+            <Eye />
+            Public view
+          </Link>
+        </Button>
+      </header>
+
+      <div className="mb-6">
+        <MemberActionsBar memberId={member.id} active={member.active} userRole={ctx.profile.role} />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
-        {/* Photo column */}
+      <div className="grid gap-5 lg:grid-cols-[280px_1fr_280px]">
+        {/* Portrait */}
         <aside>
-          <div className="border-ink/20 bg-paper-2 flex aspect-[3/4] items-center justify-center rounded-md border">
-            <span className="text-ink-faint font-mono text-xs">[ Member photo ]</span>
+          <div className="border-ink/15 bg-paper-2 relative flex aspect-[3/4] items-center justify-center overflow-hidden rounded-md border">
+            {signedDownloadUrl ? (
+              <Image
+                src={signedDownloadUrl}
+                alt={`Portrait of ${member.fullName}`}
+                fill
+                sizes="(max-width: 1024px) 100vw, 280px"
+                className="object-cover"
+                unoptimized
+              />
+            ) : (
+              <div className="flex flex-col items-center gap-2">
+                <span
+                  aria-hidden="true"
+                  className="bg-paper border-ink/25 text-ink-soft font-script flex size-24 items-center justify-center rounded-full border text-3xl"
+                >
+                  {member.initials}
+                </span>
+                <span className="text-ink-faint font-mono text-[11px]">No portrait yet</span>
+              </div>
+            )}
           </div>
-          <div className="mt-3 flex gap-2">
-            <button className="border-ink/30 text-ink hover:bg-paper-2 font-script inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-md border border-dashed text-sm">
-              <Upload className="size-3.5" />
-              Upload
-            </button>
-            <button className="border-ink/30 text-ink hover:bg-paper-2 font-script inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-md border border-dashed text-sm">
-              <Trash2 className="size-3.5" />
-              Remove
-            </button>
-          </div>
-          <p className="text-ink-faint mt-3 font-mono text-[11px]">
-            Recommended 3:4 portrait · ≥ 800px · ≤ 2 MB.
-          </p>
         </aside>
 
-        {/* Form column */}
-        <div className="flex flex-col gap-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <Field label="Full name">
-              <FieldInput defaultValue={`${member.honorific} [Member 1]`} />
-            </Field>
-            <Field label="Honorific">
-              <FieldInput defaultValue="Hon." />
-            </Field>
-            <Field label="Position">
-              <FieldSelect defaultValue="sb_member">
-                <option value="mayor">Mayor</option>
-                <option value="vice_mayor">Vice Mayor</option>
-                <option value="sb_member">&gt; SB Member</option>
-              </FieldSelect>
-            </Field>
-            <Field label="Seniority">
-              <FieldInput defaultValue="Senior Member" />
-            </Field>
-            <Field label="Term start">
-              <FieldInput type="date" defaultValue="2025-07-01" />
-            </Field>
-            <Field label="Term end">
-              <FieldInput type="date" defaultValue="2028-06-30" />
-            </Field>
-            <Field label="Email (optional)">
-              <FieldInput type="email" defaultValue="member1@lambunao.gov.ph" />
-            </Field>
-            <Field label="Office phone">
-              <FieldInput defaultValue="(033) 333-1234" />
-            </Field>
-          </div>
+        {/* Bio + committees */}
+        <div className="flex flex-col gap-5">
+          <article className="border-ink/15 rounded-md border p-5">
+            <p className="text-rust mb-3 font-mono text-[10px] font-semibold tracking-[0.18em] uppercase">
+              Biography
+            </p>
+            {member.bioMd && member.bioMd.trim().length > 0 ? (
+              <div className="text-ink prose-sm max-w-none leading-relaxed whitespace-pre-wrap">
+                {member.bioMd}
+              </div>
+            ) : (
+              <p className="text-ink-faint font-mono text-xs">
+                No biography on file. Use Edit to add one.
+              </p>
+            )}
+          </article>
 
-          <Field label="Committees">
-            <div className="flex flex-wrap items-center gap-1.5 pt-1">
-              <CommitteeChip>HEALTH & SANITATION (CHAIR)</CommitteeChip>
-              <CommitteeChip>EDUCATION</CommitteeChip>
-              <CommitteeChip>WOMEN & FAMILY</CommitteeChip>
-              <button className="border-ink/30 text-ink-soft hover:border-ink rounded-pill inline-flex h-7 items-center gap-1 border border-dashed px-2.5 font-mono text-[10px] tracking-wide uppercase">
-                <Plus className="size-3" /> Add committee
-              </button>
-            </div>
-          </Field>
-
-          <Field
-            label="Bio · supports [TL] / [HIL]"
-            hint="EN · 124 / 600 · TL missing · HIL missing"
-          >
-            <textarea
-              defaultValue="[Short biography placeholder — 2 to 4 sentences. Background, areas of advocacy, prior public service. Markdown allowed.]"
-              rows={5}
-              className="w-full bg-transparent text-sm leading-relaxed font-medium italic outline-none"
-            />
-          </Field>
-
-          <label className="border-ink/30 mt-2 flex items-center justify-between rounded-md border border-dashed p-4">
-            <span className="text-ink inline-flex items-center gap-2 font-medium">
-              <Globe className="text-rust size-4" aria-hidden="true" />
-              Show on public directory
-            </span>
-            <span
-              aria-hidden="true"
-              className="bg-rust inline-flex h-5 w-9 items-center rounded-full p-0.5"
-            >
-              <span className="bg-paper size-4 translate-x-4 rounded-full" />
-            </span>
-          </label>
+          <article className="border-ink/15 rounded-md border p-5">
+            <p className="text-rust mb-3 font-mono text-[10px] font-semibold tracking-[0.18em] uppercase">
+              Committee assignments
+            </p>
+            {member.committeeAssignments.length === 0 ? (
+              <p className="text-ink-faint font-mono text-xs">No active committee assignments.</p>
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {member.committeeAssignments.map((a) => (
+                  <li
+                    key={a.committee.id}
+                    className="border-ink/15 flex items-center justify-between gap-2 rounded-md border border-dashed px-3 py-2"
+                  >
+                    <span className="text-ink text-sm">{a.committee.name}</span>
+                    <Badge
+                      variant={
+                        a.role === 'chair'
+                          ? 'success'
+                          : a.role === 'vice_chair'
+                            ? 'outline'
+                            : 'outline'
+                      }
+                    >
+                      {COMMITTEE_ROLE_LABELS[a.role]}
+                    </Badge>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </article>
         </div>
+
+        {/* Sidebar metadata */}
+        <aside className="flex flex-col gap-5">
+          <section className="border-ink/15 rounded-md border p-5">
+            <p className="text-rust mb-3 font-mono text-[10px] font-semibold tracking-[0.18em] uppercase">
+              Contact
+            </p>
+            {member.contactEmail ? (
+              <p className="text-ink-soft inline-flex items-center gap-2 text-sm break-all">
+                <Mail className="text-ink-faint size-3.5 shrink-0" aria-hidden="true" />
+                <a href={`mailto:${member.contactEmail}`} className="hover:text-rust">
+                  {member.contactEmail}
+                </a>
+              </p>
+            ) : (
+              <p className="text-ink-faint font-mono text-xs">No email on file.</p>
+            )}
+            {member.contactPhone && (
+              <p className="text-ink-soft mt-2 inline-flex items-center gap-2 text-sm">
+                <Phone className="text-ink-faint size-3.5 shrink-0" aria-hidden="true" />
+                <span>{member.contactPhone}</span>
+              </p>
+            )}
+          </section>
+
+          <section className="border-ink/15 rounded-md border p-5">
+            <p className="text-rust mb-3 font-mono text-[10px] font-semibold tracking-[0.18em] uppercase">
+              Visibility
+            </p>
+            <p className="text-ink-soft text-xs">
+              {member.showOnPublic
+                ? 'Shown on the public /members directory.'
+                : 'Hidden from the public directory.'}
+            </p>
+          </section>
+        </aside>
       </div>
     </div>
-  );
-}
-
-function CommitteeChip({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="bg-ink text-paper rounded-pill inline-flex h-7 items-center gap-1.5 px-2.5 font-mono text-[10px] tracking-wide uppercase">
-      {children}
-      <button aria-label={`Remove ${children}`}>
-        <X className="size-3" />
-      </button>
-    </span>
   );
 }
