@@ -5,15 +5,17 @@ import { format } from 'date-fns';
 import { AdminPageHeader } from '@/components/app/admin-page-header';
 import { getActiveMembers } from '@/lib/db/queries/members';
 import { getMeetingsList } from '@/lib/db/queries/meetings';
+import { getCurrentTenantId } from '@/lib/db/queries/tenant';
 
 import { NewResolutionForm } from './_form';
 
-export const metadata = { title: 'Draft a resolution' };
+export const metadata = { title: 'Upload a resolution' };
 
 export default async function NewResolutionPage() {
-  const [members, meetings] = await Promise.all([
+  const [members, meetings, tenantId] = await Promise.all([
     getActiveMembers({ excludePositions: ['mayor'] }),
     getMeetingsList(),
+    getCurrentTenantId(),
   ]);
 
   const sponsorOptions = members.map((m) => ({
@@ -28,8 +30,12 @@ export default async function NewResolutionPage() {
 
   return (
     <div>
-      <AdminPageHeader title="Draft a resolution" />
-      <NewResolutionForm sponsorOptions={sponsorOptions} meetingOptions={meetingOptions} />
+      <AdminPageHeader title="Upload a resolution" />
+      <NewResolutionForm
+        sponsorOptions={sponsorOptions}
+        meetingOptions={meetingOptions}
+        tenantId={tenantId}
+      />
     </div>
   );
 }
