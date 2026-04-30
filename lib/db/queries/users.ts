@@ -2,11 +2,9 @@ import 'server-only';
 
 import { and, asc, eq } from 'drizzle-orm';
 
-import { env } from '@/env';
 import { db } from '@/lib/db';
 import { profiles, type Profile } from '@/lib/db/schema';
 
-import { mockGetUsersList } from './_mock-data';
 import { getCurrentTenantId } from './tenant';
 
 export type UserRowData = {
@@ -20,7 +18,6 @@ export type UserRowData = {
 };
 
 export async function getUsersList(): Promise<UserRowData[]> {
-  if (env.MOCK_DATA) return mockGetUsersList();
   const tenantId = await getCurrentTenantId();
   const rows = await db
     .select({
@@ -40,7 +37,6 @@ export async function getUsersList(): Promise<UserRowData[]> {
 }
 
 export async function getProfileById(userId: string): Promise<Profile | null> {
-  if (env.MOCK_DATA) return null;
   const tenantId = await getCurrentTenantId();
   const [row] = await db
     .select()

@@ -1,8 +1,5 @@
 import { Suspense } from 'react';
 
-import { env } from '@/env';
-import { MOCK_LOGIN_EMAIL, MOCK_LOGIN_PASSWORD } from '@/lib/auth/mock-creds';
-
 import { LoginForm } from './_form';
 
 export const metadata = {
@@ -59,20 +56,6 @@ export default function LoginPage() {
           <Suspense fallback={<div className="mt-8 h-64" aria-hidden="true" />}>
             <LoginForm />
           </Suspense>
-
-          {env.MOCK_DATA && (
-            <div className="border-rust/40 bg-rust/8 mt-6 rounded-md border border-dashed p-4 text-sm leading-relaxed">
-              <p className="text-rust mb-2 font-mono text-[10px] font-semibold tracking-[0.18em] uppercase">
-                Mock mode active · any creds accepted
-              </p>
-              <p className="text-ink-soft italic">
-                Use <code className="text-rust font-mono not-italic">{MOCK_LOGIN_EMAIL}</code> /{' '}
-                <code className="text-rust font-mono not-italic">{MOCK_LOGIN_PASSWORD}</code> — or
-                anything else. Set <code className="font-mono not-italic">MOCK_DATA=false</code> to
-                enforce real Supabase auth.
-              </p>
-            </div>
-          )}
 
           <div className="border-ink/30 text-ink-soft mt-6 rounded-md border border-dashed p-4 text-sm leading-relaxed">
             <strong className="text-ink font-semibold">No self-registration.</strong>{' '}

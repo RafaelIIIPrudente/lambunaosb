@@ -15,8 +15,9 @@
  */
 
 import { eq } from 'drizzle-orm';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
 
-import { db } from './index';
 import {
   committeeAssignments,
   committees,
@@ -26,6 +27,19 @@ import {
   type NewCommittee,
   type NewSBMember,
 } from './schema';
+
+// Standalone db client — the seed runs via tsx outside Next.js, so it can't
+// import from ./index (which uses 'server-only', a bundler-only stub that
+// throws when resolved by Node directly).
+const databaseUrl = process.env.DATABASE_URL;
+if (!databaseUrl) {
+  console.error('DATABASE_URL is not set. Did --env-file pick up your .env?');
+  process.exit(1);
+}
+const client = postgres(databaseUrl, { prepare: false, max: 1 });
+const db = drizzle(client, {
+  schema: { committeeAssignments, committees, profiles, sbMembers, tenants },
+});
 
 const TENANT_SLUG = 'lambunao';
 

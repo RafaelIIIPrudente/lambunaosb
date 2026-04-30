@@ -2,7 +2,6 @@ import 'server-only';
 
 import { and, asc, count, desc, eq } from 'drizzle-orm';
 
-import { env } from '@/env';
 import { db } from '@/lib/db';
 import {
   citizenQueries,
@@ -12,11 +11,6 @@ import {
   profiles,
 } from '@/lib/db/schema';
 
-import {
-  mockGetCitizenQueries,
-  mockGetCitizenQueryById,
-  mockGetCitizenQueryStatusCounts,
-} from './_mock-data';
 import { getCurrentTenantId } from './tenant';
 
 export type CitizenQueryStatus = CitizenQuery['status'];
@@ -43,7 +37,6 @@ export type GetCitizenQueriesOptions = {
 export async function getCitizenQueries(
   options: GetCitizenQueriesOptions = {},
 ): Promise<CitizenQueryRowData[]> {
-  if (env.MOCK_DATA) return mockGetCitizenQueries(options);
   const tenantId = await getCurrentTenantId();
   const conditions = [eq(citizenQueries.tenantId, tenantId)];
   if (options.status) conditions.push(eq(citizenQueries.status, options.status));
@@ -93,7 +86,6 @@ export type CitizenQueryDetail = CitizenQueryRowData & {
 };
 
 export async function getCitizenQueryById(id: string): Promise<CitizenQueryDetail | null> {
-  if (env.MOCK_DATA) return mockGetCitizenQueryById(id);
   const tenantId = await getCurrentTenantId();
   const [row] = await db
     .select({
@@ -133,7 +125,6 @@ export async function getCitizenQueryById(id: string): Promise<CitizenQueryDetai
 export async function getCitizenQueryReplies(
   queryId: string,
 ): Promise<(CitizenQueryReply & { authorName: string | null })[]> {
-  if (env.MOCK_DATA) return [];
   const tenantId = await getCurrentTenantId();
   const rows = await db
     .select({
@@ -153,7 +144,6 @@ export async function getCitizenQueryReplies(
 export type StatusCounts = Record<CitizenQueryStatus | 'all', number>;
 
 export async function getCitizenQueryStatusCounts(): Promise<StatusCounts> {
-  if (env.MOCK_DATA) return mockGetCitizenQueryStatusCounts();
   const tenantId = await getCurrentTenantId();
   const rows = await db
     .select({ status: citizenQueries.status, total: count() })

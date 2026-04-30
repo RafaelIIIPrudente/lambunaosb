@@ -6,7 +6,6 @@ import { and, desc, eq } from 'drizzle-orm';
 import { headers } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 
-import { env } from '@/env';
 import { db } from '@/lib/db';
 import { getCurrentTenantId } from '@/lib/db/queries/tenant';
 import { citizenQueries } from '@/lib/db/schema';
@@ -39,14 +38,6 @@ export async function createCitizenQuery(
   // Honeypot tripped → silent success per RA 10173 §17.1.
   if (parsed.data.website && parsed.data.website.length > 0) {
     return ok({ referenceNumber: 'Q-0000-0000' });
-  }
-
-  // MOCK_DATA mode: pretend the submission succeeded so the public form
-  // demo flow works before Supabase is wired.
-  if (env.MOCK_DATA) {
-    const year = new Date().getFullYear();
-    const fakeSeq = Math.floor(Math.random() * 9000) + 1000;
-    return ok({ referenceNumber: `Q-${year}-${fakeSeq}` });
   }
 
   try {

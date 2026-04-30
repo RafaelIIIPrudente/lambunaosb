@@ -1,6 +1,6 @@
 # SB Lambunao — Phase 5 Wire-Up Runbook
 
-**When to read this:** when the Supabase project exists (or you're about to create it) and you want the app to switch from `MOCK_DATA=true` browse-only mode to a fully-live database + auth + audit trail.
+**When to read this:** when you're standing up a new Supabase project for SB Lambunao and need to wire the app to a fully-live database + auth + audit trail.
 
 **Time:** ~15 minutes end-to-end. Most of it is dashboard clicks; the actual code/CLI bits are 3 commands.
 
@@ -57,15 +57,6 @@ Fill these from the Supabase dashboard:
 | `SUPABASE_SERVICE_ROLE_KEY`            | Project settings → Data API → **service_role key** (starts with `sb_secret_`). Click "Reveal" first. **Server-only — never expose to client code.**             |
 | `DATABASE_URL`                         | Project settings → Database → Connection string → **URI** tab → choose **Session pooler** (port 5432). Replace `[YOUR-PASSWORD]` with the password from step 1. |
 | `NEXT_PUBLIC_SITE_URL`                 | `http://localhost:3000` for local dev; your production URL for Vercel                                                                                           |
-
-Then flip the dev escape hatches **off**:
-
-```
-AUTH_ENABLED=true
-MOCK_DATA=false
-```
-
-(Or delete the lines — both default to the production-safe value.)
 
 Optional, leave blank until you wire them in Phase 6:
 

@@ -2,7 +2,6 @@ import 'server-only';
 
 import { and, asc, eq, inArray, isNull, not } from 'drizzle-orm';
 
-import { env } from '@/env';
 import { db } from '@/lib/db';
 import {
   committeeAssignments,
@@ -13,7 +12,6 @@ import {
   type SBMember,
 } from '@/lib/db/schema';
 
-import { mockGetActiveMembers, mockGetAllMemberIds, mockGetMemberById } from './_mock-data';
 import { getCurrentTenantId } from './tenant';
 
 export type MemberPosition = SBMember['position'];
@@ -93,7 +91,6 @@ export type GetActiveMembersOptions = {
 export async function getActiveMembers(
   options: GetActiveMembersOptions = {},
 ): Promise<MemberCardData[]> {
-  if (env.MOCK_DATA) return mockGetActiveMembers(options);
   const tenantId = await getCurrentTenantId();
   const conditions = [
     eq(sbMembers.tenantId, tenantId),
@@ -129,7 +126,6 @@ export async function getActiveMembers(
 }
 
 export async function getMemberById(id: string): Promise<MemberDetail | null> {
-  if (env.MOCK_DATA) return mockGetMemberById(id);
   const tenantId = await getCurrentTenantId();
   const [row] = await db
     .select()
@@ -162,7 +158,6 @@ export async function getMemberById(id: string): Promise<MemberDetail | null> {
 }
 
 export async function getAllMemberIds(): Promise<{ id: string }[]> {
-  if (env.MOCK_DATA) return mockGetAllMemberIds();
   const tenantId = await getCurrentTenantId();
   return db
     .select({ id: sbMembers.id })

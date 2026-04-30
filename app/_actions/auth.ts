@@ -13,18 +13,13 @@ import {
   signInSchema,
 } from '@/lib/validators/auth';
 
-export async function signIn(raw: unknown): Promise<Result<{ redirectTo: string }>> {
+export async function signIn(raw: unknown): Promise<Result<never>> {
   const parsed = signInSchema.safeParse(raw);
   if (!parsed.success) {
     return err('Please check your email and password.', 'E_VALIDATION');
   }
 
-  // MOCK_DATA mode: accept any non-empty creds. No real session is created —
-  // the admin layout's auth guard is also bypassed because AUTH_ENABLED should
-  // be false in this mode (otherwise the redirect target loops back here).
-  if (env.MOCK_DATA) {
-    return ok({ redirectTo: parsed.data.redirectTo ?? '/admin/dashboard' });
-  }
+  const redirectTo = parsed.data.redirectTo ?? '/admin/dashboard';
 
   try {
     const supabase = await createClient();
@@ -36,11 +31,11 @@ export async function signIn(raw: unknown): Promise<Result<{ redirectTo: string 
     if (error) {
       return err('Invalid email or password.', 'E_INVALID_CREDENTIALS');
     }
-
-    return ok({ redirectTo: parsed.data.redirectTo ?? '/admin/dashboard' });
   } catch (e) {
     return err(e instanceof Error ? e.message : 'Sign-in failed.', 'E_UNKNOWN');
   }
+
+  redirect(redirectTo);
 }
 
 export async function signOut(): Promise<Result<void>> {

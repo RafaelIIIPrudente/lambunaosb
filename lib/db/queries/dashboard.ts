@@ -1,8 +1,5 @@
 import 'server-only';
 
-import { env } from '@/env';
-
-import { mockGetDashboardData } from './_mock-data';
 import { type AuditLogRowData, getRecentActivity } from './audit';
 import { getCitizenQueryStatusCounts, type StatusCounts } from './citizen-queries';
 import { getResolutionsList, type ResolutionRowData } from './resolutions';
@@ -17,8 +14,6 @@ export type DashboardData = {
 };
 
 export async function getDashboardData(): Promise<DashboardData> {
-  if (env.MOCK_DATA) return mockGetDashboardData();
-
   const [upcoming, queryCounts, recentResolutions, recentActivity] = await Promise.all([
     getUpcomingMeetings(1),
     getCitizenQueryStatusCounts(),

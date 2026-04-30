@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
@@ -14,7 +14,6 @@ import { signInSchema, type SignInInput } from '@/lib/validators/auth';
 import { signIn } from '@/app/_actions/auth';
 
 export function LoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
 
@@ -26,21 +25,17 @@ export function LoginForm() {
       remember: false,
       redirectTo: searchParams.get('redirectTo') ?? undefined,
     },
-    // Validate only on submit; once the user has tried once, re-validate on
-    // every keystroke so they see errors clear as they fix them.
     mode: 'onSubmit',
     reValidateMode: 'onChange',
   });
 
   function onSubmit(values: SignInInput) {
     startTransition(async () => {
+      // signIn redirects on success (throws NEXT_REDIRECT); only returns on error.
       const result = await signIn(values);
       if (!result.ok) {
         form.setError('root', { message: result.error });
-        return;
       }
-      router.push(result.data.redirectTo);
-      router.refresh();
     });
   }
 

@@ -2,16 +2,9 @@ import 'server-only';
 
 import { and, desc, eq, isNull } from 'drizzle-orm';
 
-import { env } from '@/env';
 import { db } from '@/lib/db';
 import { newsPosts, type NewsPost, profiles } from '@/lib/db/schema';
 
-import {
-  mockGetAdminNewsList,
-  mockGetAllPublishedNewsSlugs,
-  mockGetNewsBySlug,
-  mockGetPublishedNews,
-} from './_mock-data';
 import { getCurrentTenantId } from './tenant';
 
 export type NewsCategory = NewsPost['category'];
@@ -43,7 +36,6 @@ export type GetPublishedNewsOptions = {
 export async function getPublishedNews(
   options: GetPublishedNewsOptions = {},
 ): Promise<NewsCardData[]> {
-  if (env.MOCK_DATA) return mockGetPublishedNews(options);
   const tenantId = await getCurrentTenantId();
   const conditions = [
     eq(newsPosts.tenantId, tenantId),
@@ -96,7 +88,6 @@ export async function getFeaturedNews(limit = 3): Promise<NewsCardData[]> {
 }
 
 export async function getNewsBySlug(slug: string): Promise<NewsPostDetail | null> {
-  if (env.MOCK_DATA) return mockGetNewsBySlug(slug);
   const tenantId = await getCurrentTenantId();
   const [row] = await db
     .select({
@@ -143,7 +134,6 @@ export async function getNewsBySlug(slug: string): Promise<NewsPostDetail | null
 }
 
 export async function getAllPublishedNewsSlugs(): Promise<{ slug: string }[]> {
-  if (env.MOCK_DATA) return mockGetAllPublishedNewsSlugs();
   const tenantId = await getCurrentTenantId();
   return db
     .select({ slug: newsPosts.slug })
@@ -174,7 +164,6 @@ export type AdminNewsRowData = {
 };
 
 export async function getAdminNewsList(): Promise<AdminNewsRowData[]> {
-  if (env.MOCK_DATA) return mockGetAdminNewsList();
   const tenantId = await getCurrentTenantId();
   const rows = await db
     .select({

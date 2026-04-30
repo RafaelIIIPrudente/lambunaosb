@@ -2,7 +2,6 @@ import 'server-only';
 
 import { and, asc, desc, eq, isNull } from 'drizzle-orm';
 
-import { env } from '@/env';
 import { db } from '@/lib/db';
 import {
   resolutions,
@@ -12,7 +11,6 @@ import {
   sbMembers,
 } from '@/lib/db/schema';
 
-import { mockGetResolutionById, mockGetResolutionsList } from './_mock-data';
 import { getCurrentTenantId } from './tenant';
 
 export type ResolutionStatus = Resolution['status'];
@@ -39,7 +37,6 @@ export type GetResolutionsListOptions = {
 export async function getResolutionsList(
   options: GetResolutionsListOptions = {},
 ): Promise<ResolutionRowData[]> {
-  if (env.MOCK_DATA) return mockGetResolutionsList(options);
   const tenantId = await getCurrentTenantId();
   const conditions = [eq(resolutions.tenantId, tenantId), isNull(resolutions.deletedAt)];
   if (options.status) conditions.push(eq(resolutions.status, options.status));
@@ -105,7 +102,6 @@ export type ResolutionDetail = {
 };
 
 export async function getResolutionById(id: string): Promise<ResolutionDetail | null> {
-  if (env.MOCK_DATA) return mockGetResolutionById(id);
   const tenantId = await getCurrentTenantId();
   const [row] = await db
     .select({
@@ -161,7 +157,6 @@ export async function getResolutionById(id: string): Promise<ResolutionDetail | 
 }
 
 export async function getResolutionVersions(resolutionId: string): Promise<ResolutionVersion[]> {
-  if (env.MOCK_DATA) return [];
   const tenantId = await getCurrentTenantId();
   return db
     .select()

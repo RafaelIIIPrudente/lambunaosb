@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
 
-import { env } from '@/env';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { AdminSidebar } from '@/components/app/admin-sidebar';
@@ -14,12 +13,7 @@ import { requireUser } from '@/lib/auth/require-user';
  * Brief §1.2 + §4.15.
  */
 export default async function AdminLayout({ children }: { children: ReactNode }) {
-  // When AUTH_ENABLED is false OR MOCK_DATA is true (dev / pre-Supabase) we
-  // skip the guard so the chrome renders without a session. Middleware
-  // applies the same gate.
-  if (env.AUTH_ENABLED && !env.MOCK_DATA) {
-    await requireUser();
-  }
+  await requireUser();
 
   return (
     <div data-surface="admin" className="bg-paper text-ink min-h-screen">

@@ -2,7 +2,6 @@ import 'server-only';
 
 import { and, asc, desc, eq, gte, isNull } from 'drizzle-orm';
 
-import { env } from '@/env';
 import { db } from '@/lib/db';
 import {
   type AgendaItem,
@@ -13,7 +12,6 @@ import {
   type Transcript,
 } from '@/lib/db/schema';
 
-import { mockGetMeetingById, mockGetMeetingsList, mockGetUpcomingMeetings } from './_mock-data';
 import { getCurrentTenantId } from './tenant';
 
 export type MeetingType = Meeting['type'];
@@ -60,7 +58,6 @@ export type MeetingRowData = {
 };
 
 export async function getMeetingsList(): Promise<MeetingRowData[]> {
-  if (env.MOCK_DATA) return mockGetMeetingsList();
   const tenantId = await getCurrentTenantId();
   const rows = await db
     .select({
@@ -106,7 +103,6 @@ export type MeetingDetail = {
 };
 
 export async function getMeetingById(id: string): Promise<MeetingDetail | null> {
-  if (env.MOCK_DATA) return mockGetMeetingById(id);
   const tenantId = await getCurrentTenantId();
   const [row] = await db
     .select({
@@ -149,7 +145,6 @@ export async function getMeetingById(id: string): Promise<MeetingDetail | null> 
 }
 
 export async function getUpcomingMeetings(limit = 5): Promise<MeetingRowData[]> {
-  if (env.MOCK_DATA) return mockGetUpcomingMeetings(limit);
   const tenantId = await getCurrentTenantId();
   const now = new Date();
   const rows = await db

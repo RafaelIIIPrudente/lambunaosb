@@ -2,18 +2,14 @@ import 'server-only';
 
 import { eq } from 'drizzle-orm';
 
-import { env } from '@/env';
 import { db } from '@/lib/db';
 import { tenants, type Tenant } from '@/lib/db/schema';
-
-import { MOCK_TENANT } from './_mock-data';
 
 export const TENANT_SLUG = 'lambunao';
 
 let cachedTenant: Tenant | null = null;
 
 export async function getCurrentTenant(): Promise<Tenant> {
-  if (env.MOCK_DATA) return MOCK_TENANT;
   if (cachedTenant) return cachedTenant;
   const [row] = await db.select().from(tenants).where(eq(tenants.slug, TENANT_SLUG)).limit(1);
   if (!row) {

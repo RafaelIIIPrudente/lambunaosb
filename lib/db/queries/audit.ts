@@ -2,11 +2,9 @@ import 'server-only';
 
 import { and, desc, eq, gte } from 'drizzle-orm';
 
-import { env } from '@/env';
 import { db } from '@/lib/db';
 import { auditLogEntries, type AuditLogEntry, profiles } from '@/lib/db/schema';
 
-import { mockGetAuditLog } from './_mock-data';
 import { getCurrentTenantId } from './tenant';
 
 export type AuditCategory = AuditLogEntry['category'];
@@ -31,7 +29,6 @@ export type GetAuditLogOptions = {
 };
 
 export async function getAuditLog(options: GetAuditLogOptions = {}): Promise<AuditLogRowData[]> {
-  if (env.MOCK_DATA) return mockGetAuditLog(options);
   const tenantId = await getCurrentTenantId();
   const conditions = [eq(auditLogEntries.tenantId, tenantId)];
   if (options.category) conditions.push(eq(auditLogEntries.category, options.category));

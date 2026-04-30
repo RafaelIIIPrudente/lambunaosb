@@ -4,14 +4,6 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { env } from '@/env';
 
 export async function updateSession(request: NextRequest) {
-  // Dev escape hatch: skip auth entirely so the admin chrome is browsable
-  // before Supabase exists. MOCK_DATA implies auth-bypass because the auth
-  // checks themselves require DB lookups (profiles table) that mock mode
-  // can't satisfy.
-  if (!env.AUTH_ENABLED || env.MOCK_DATA) {
-    return NextResponse.next({ request });
-  }
-
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
