@@ -1,218 +1,368 @@
-import Link from 'next/link';
-import { Filter, Search } from 'lucide-react';
+import 'server-only';
 
+import Link from 'next/link';
+import { format, formatDistanceToNowStrict } from 'date-fns';
+import { ArrowLeft, ArrowRight, Inbox, Search, X } from 'lucide-react';
+
+import { AdminPageHeader } from '@/components/app/admin-page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardDescription, CardEyebrow, CardFooter, CardTitle } from '@/components/ui/card';
+import { requireUser } from '@/lib/auth/require-user';
+import {
+  getAssignmentCounts,
+  getCitizenQueries,
+  getCitizenQueryStatusCounts,
+  type CitizenQueryStatus,
+} from '@/lib/db/queries/citizen-queries';
+import { cn } from '@/lib/utils';
+import { CITIZEN_QUERY_CATEGORY_LABELS } from '@/lib/validators/citizen-query';
+import {
+  CITIZEN_QUERY_STATUSES,
+  CITIZEN_QUERY_STATUS_LABELS,
+} from '@/lib/validators/citizen-query-admin';
 
-type Status = 'new' | 'in_progress' | 'answered' | 'closed';
+export const metadata = { title: 'Citizen queries' };
 
-type Row = {
-  id: string;
-  citizen: string;
-  email: string;
-  subject: string;
-  age: string;
-  status: Status;
+type StatusFilter = CitizenQueryStatus | 'all';
+type AssignedFilter = 'all' | 'mine' | 'unassigned';
+
+const STATUS_BADGE_VARIANT: Record<
+  CitizenQueryStatus,
+  'new' | 'outline' | 'success' | 'warn' | 'destructive'
+> = {
+  new: 'new',
+  in_progress: 'warn',
+  awaiting_citizen: 'outline',
+  answered: 'success',
+  closed: 'outline',
+  spam: 'destructive',
 };
 
-const ROWS: Row[] = [
-  {
-    id: 'q-0142',
-    citizen: '[Citizen 1]',
-    email: 'juan@…ph',
-    subject: 'Permit office hours during fiesta week',
-    age: '2h',
-    status: 'new',
-  },
-  {
-    id: 'q-0141',
-    citizen: '[Citizen 2]',
-    email: 'ana@…ph',
-    subject: 'Request: copy of RES-2026-014',
-    age: '5h',
-    status: 'in_progress',
-  },
-  {
-    id: 'q-0140',
-    citizen: '[Citizen 3]',
-    email: 'r.cruz@…ph',
-    subject: 'Tricycle franchise renewal — confused on rules',
-    age: 'Yesterday',
-    status: 'in_progress',
-  },
-  {
-    id: 'q-0139',
-    citizen: '[Citizen 4]',
-    email: 'liza@…ph',
-    subject: 'Suggestion: extend library hours',
-    age: '2 days',
-    status: 'answered',
-  },
-  {
-    id: 'q-0138',
-    citizen: '[Citizen 5]',
-    email: 'm.bautista@…ph',
-    subject: 'Garbage collection schedule for our barangay',
-    age: '3 days',
-    status: 'closed',
-  },
-  {
-    id: 'q-0137',
-    citizen: '[Citizen 6]',
-    email: 'jp@…ph',
-    subject: 'Complaint: noise ordinance enforcement',
-    age: '4 days',
-    status: 'in_progress',
-  },
-  {
-    id: 'q-0136',
-    citizen: '[Citizen 7]',
-    email: 'ben@…ph',
-    subject: 'Senior citizen ID renewal procedure',
-    age: '6 days',
-    status: 'answered',
-  },
-];
-
-const STATUS_BADGE: Record<Status, { label: string; variant: 'new' | 'outline' | 'success' }> = {
-  new: { label: 'New', variant: 'new' },
-  in_progress: { label: 'In progress', variant: 'outline' },
-  answered: { label: 'Answered', variant: 'success' },
-  closed: { label: 'Closed', variant: 'outline' },
-};
-
-const STATUS_COUNT = { all: 42, new: 4, in_progress: 7, answered: 24, closed: 7 };
-
-export const metadata = { title: 'Citizen Queries' };
-
-export default function QueriesPage() {
-  return (
-    <div className="grid gap-6 lg:grid-cols-[200px_1fr]">
-      {/* Left rail — status filter */}
-      <aside className="flex flex-col gap-6">
-        <div>
-          <p className="text-ink-faint mb-3 font-mono text-[10px] font-semibold tracking-[0.18em] uppercase">
-            Status
-          </p>
-          <ul className="flex flex-col gap-0.5 text-sm">
-            <FilterRow label="All" count={STATUS_COUNT.all} dot="ink-faint" />
-            <FilterRow label="New" count={STATUS_COUNT.new} dot="rust" active />
-            <FilterRow label="In progress" count={STATUS_COUNT.in_progress} dot="warn" />
-            <FilterRow label="Answered" count={STATUS_COUNT.answered} dot="success" />
-            <FilterRow label="Closed" count={STATUS_COUNT.closed} dot="ink-faint" />
-          </ul>
-        </div>
-        <div>
-          <p className="text-ink-faint mb-3 font-mono text-[10px] font-semibold tracking-[0.18em] uppercase">
-            Assigned
-          </p>
-          <ul className="flex flex-col gap-0.5 text-sm">
-            <li className="text-ink-soft hover:text-ink font-script px-2 py-1.5">Anyone</li>
-            <li className="text-ink-soft hover:text-ink font-script px-2 py-1.5">Me (3)</li>
-            <li className="text-ink-soft hover:text-ink font-script px-2 py-1.5">Unassigned (4)</li>
-          </ul>
-        </div>
-      </aside>
-
-      {/* Inbox */}
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center gap-3">
-          <input type="checkbox" aria-label="Select all" className="accent-rust size-4" />
-          <div className="relative flex-1">
-            <Search
-              className="text-ink-faint absolute top-1/2 left-3 size-4 -translate-y-1/2"
-              aria-hidden="true"
-            />
-            <input
-              type="search"
-              placeholder="Search queries…"
-              aria-label="Search queries"
-              className="border-ink/20 bg-paper text-ink placeholder:text-ink-faint focus-visible:border-rust focus-visible:ring-rust/40 h-10 w-full rounded-md border pr-3 pl-9 text-sm italic transition-colors outline-none focus-visible:ring-3"
-            />
-          </div>
-          <Button variant="outline" size="sm" className="font-script text-base">
-            <Filter className="size-3.5" />
-            Newest
-          </Button>
-        </div>
-
-        <ul className="flex flex-col">
-          {ROWS.map((row) => {
-            const status = STATUS_BADGE[row.status];
-            return (
-              <li
-                key={row.id}
-                className={`border-ink/15 hover:bg-paper-2/60 grid grid-cols-[auto_auto_auto_1fr_auto_auto] items-center gap-3 border-b border-dashed py-3 transition-colors ${row.status === 'new' ? 'bg-rust/5' : ''}`}
-              >
-                <input
-                  type="checkbox"
-                  aria-label={`Select ${row.id}`}
-                  className="accent-rust ml-2 size-4"
-                />
-                <span
-                  aria-hidden="true"
-                  className={`size-2 rounded-full ${row.status === 'new' ? 'bg-rust' : row.status === 'in_progress' ? 'bg-gold' : row.status === 'answered' ? 'bg-success' : 'bg-ink-ghost'}`}
-                />
-                <div className="flex min-w-0 flex-col">
-                  <Link
-                    href={`/queries/${row.id}`}
-                    className="text-ink hover:text-rust truncate font-medium"
-                  >
-                    {row.citizen}
-                  </Link>
-                  <span className="text-ink-faint truncate font-mono text-[11px]">{row.email}</span>
-                </div>
-                <Link
-                  href={`/queries/${row.id}`}
-                  className="text-ink-soft hover:text-ink font-script truncate text-base"
-                >
-                  {row.subject}
-                </Link>
-                <Badge variant={status.variant}>{status.label}</Badge>
-                <span className="text-ink-faint mr-2 font-mono text-[11px] tabular-nums">
-                  {row.age}
-                </span>
-              </li>
-            );
-          })}
-        </ul>
-      </div>
-    </div>
-  );
+function isStatusFilter(value: string | undefined): value is StatusFilter {
+  if (!value) return false;
+  if (value === 'all') return true;
+  return (CITIZEN_QUERY_STATUSES as readonly string[]).includes(value);
 }
 
-function FilterRow({
-  label,
-  count,
-  dot,
-  active = false,
+function isAssignedFilter(value: string | undefined): value is AssignedFilter {
+  return value === 'all' || value === 'mine' || value === 'unassigned';
+}
+
+type FilterState = {
+  status: StatusFilter;
+  assigned: AssignedFilter;
+  q: string;
+  cursor: string | null;
+};
+
+function buildHref(base: FilterState, patch: Partial<FilterState>): string {
+  const next = { ...base, ...patch };
+  const params = new URLSearchParams();
+  if (next.status !== 'all') params.set('status', next.status);
+  if (next.assigned !== 'all') params.set('assigned', next.assigned);
+  if (next.q) params.set('q', next.q);
+  if (next.cursor) params.set('cursor', next.cursor);
+  const qs = params.toString();
+  return qs ? `/admin/queries?${qs}` : '/admin/queries';
+}
+
+function parseCursor(raw: string | undefined): Date | null {
+  if (!raw) return null;
+  const date = new Date(raw);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+export default async function QueriesAdminPage({
+  searchParams,
 }: {
-  label: string;
-  count: number;
-  dot: 'rust' | 'warn' | 'success' | 'ink-faint';
-  active?: boolean;
+  searchParams: Promise<{ status?: string; assigned?: string; q?: string; cursor?: string }>;
 }) {
-  const dotClass =
-    dot === 'rust'
-      ? 'bg-rust'
-      : dot === 'warn'
-        ? 'bg-gold'
-        : dot === 'success'
-          ? 'bg-success'
-          : 'bg-ink-ghost';
+  const ctx = await requireUser();
+  const params = await searchParams;
+  const status: StatusFilter = isStatusFilter(params.status) ? params.status : 'all';
+  const assigned: AssignedFilter = isAssignedFilter(params.assigned) ? params.assigned : 'all';
+  const q = (params.q ?? '').trim();
+  const cursorDate = parseCursor(params.cursor);
+  const cursorString = cursorDate?.toISOString() ?? null;
+  const baseFilters: FilterState = { status, assigned, q, cursor: cursorString };
+
+  const [{ rows, nextCursor }, statusCounts, assignmentCounts] = await Promise.all([
+    getCitizenQueries({
+      status: status === 'all' ? undefined : status,
+      assignedTo:
+        assigned === 'unassigned' ? 'unassigned' : assigned === 'mine' ? ctx.userId : undefined,
+      q: q || undefined,
+      cursor: cursorDate ?? undefined,
+    }),
+    getCitizenQueryStatusCounts(),
+    getAssignmentCounts(ctx.userId),
+  ]);
+
+  const statusFilterOptions: { value: StatusFilter; label: string; count: number }[] = [
+    { value: 'all', label: 'All', count: statusCounts.all },
+    ...CITIZEN_QUERY_STATUSES.map((s) => ({
+      value: s,
+      label: CITIZEN_QUERY_STATUS_LABELS[s],
+      count: statusCounts[s],
+    })),
+  ];
+
+  const assignedFilterOptions: { value: AssignedFilter; label: string; count: number | null }[] = [
+    { value: 'all', label: 'Anyone', count: null },
+    { value: 'mine', label: 'Assigned to me', count: assignmentCounts.mine },
+    { value: 'unassigned', label: 'Unassigned', count: assignmentCounts.unassigned },
+  ];
+
+  const hasFilters = status !== 'all' || assigned !== 'all' || q.length > 0;
+
   return (
-    <li>
-      <button
-        type="button"
-        aria-current={active ? 'true' : undefined}
-        className={`hover:bg-paper-2 aria-[current=true]:bg-paper-2 aria-[current=true]:text-ink flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left transition-colors ${active ? 'text-ink' : 'text-ink-soft'}`}
-      >
-        <span className="flex items-center gap-2">
-          <span aria-hidden="true" className={`size-1.5 rounded-full ${dotClass}`} />
-          <span className="font-script text-base">{label}</span>
-        </span>
-        <span className="text-ink-faint font-mono text-[11px] tabular-nums">{count}</span>
-      </button>
-    </li>
+    <div>
+      <AdminPageHeader
+        title="Citizen queries"
+        accessory={
+          <span className="text-ink-faint font-mono text-[11px] tracking-wide">
+            {statusCounts.new > 0 && (
+              <span className="text-rust mr-3 font-semibold">{statusCounts.new} new ·</span>
+            )}
+            {statusCounts.all} total
+          </span>
+        }
+      />
+
+      <div className="grid gap-6 lg:grid-cols-[220px_1fr]">
+        <aside className="flex flex-col gap-6">
+          <div>
+            <p className="text-ink-faint mb-3 font-mono text-[10px] font-semibold tracking-[0.18em] uppercase">
+              Status
+            </p>
+            <ul className="flex flex-col gap-0.5 text-sm">
+              {statusFilterOptions.map((opt) => {
+                const active = status === opt.value;
+                return (
+                  <li key={opt.value}>
+                    <Link
+                      href={buildHref(baseFilters, { status: opt.value, cursor: null })}
+                      aria-current={active ? 'page' : undefined}
+                      className={cn(
+                        'hover:bg-paper-2 flex w-full items-center justify-between rounded-md px-2 py-1.5 transition-colors',
+                        active ? 'bg-paper-2 text-ink' : 'text-ink-soft hover:text-ink',
+                      )}
+                    >
+                      <span className="font-script text-base">{opt.label}</span>
+                      <span className="text-ink-faint font-mono text-[11px] tabular-nums">
+                        {opt.count}
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+
+          <div>
+            <p className="text-ink-faint mb-3 font-mono text-[10px] font-semibold tracking-[0.18em] uppercase">
+              Assigned
+            </p>
+            <ul className="flex flex-col gap-0.5 text-sm">
+              {assignedFilterOptions.map((opt) => {
+                const active = assigned === opt.value;
+                return (
+                  <li key={opt.value}>
+                    <Link
+                      href={buildHref(baseFilters, { assigned: opt.value, cursor: null })}
+                      aria-current={active ? 'page' : undefined}
+                      className={cn(
+                        'hover:bg-paper-2 flex w-full items-center justify-between rounded-md px-2 py-1.5 transition-colors',
+                        active ? 'bg-paper-2 text-ink' : 'text-ink-soft hover:text-ink',
+                      )}
+                    >
+                      <span className="font-script text-base">{opt.label}</span>
+                      {opt.count !== null && (
+                        <span className="text-ink-faint font-mono text-[11px] tabular-nums">
+                          {opt.count}
+                        </span>
+                      )}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </aside>
+
+        <div className="flex min-w-0 flex-col gap-4">
+          <form action="/admin/queries" method="get" className="flex items-center gap-2">
+            {status !== 'all' && <input type="hidden" name="status" value={status} />}
+            {assigned !== 'all' && <input type="hidden" name="assigned" value={assigned} />}
+            <div className="relative flex-1">
+              <Search
+                className="text-ink-faint pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2"
+                aria-hidden="true"
+              />
+              <input
+                type="search"
+                name="q"
+                defaultValue={q}
+                placeholder="Search by ref, subject, name, or email…"
+                aria-label="Search queries"
+                className="border-ink/20 bg-paper text-ink placeholder:text-ink-faint focus-visible:border-rust focus-visible:ring-rust/40 h-10 w-full rounded-md border pr-3 pl-9 text-sm transition-colors outline-none focus-visible:ring-2"
+              />
+            </div>
+            <Button type="submit" variant="outline" size="sm" className="font-medium">
+              Search
+            </Button>
+            {hasFilters && (
+              <Button asChild type="button" variant="ghost" size="sm" className="font-medium">
+                <Link href="/admin/queries">
+                  <X />
+                  Clear
+                </Link>
+              </Button>
+            )}
+          </form>
+
+          {rows.length === 0 ? (
+            <Card className="max-w-xl">
+              <CardEyebrow>{hasFilters ? 'No matches' : 'Inbox is empty'}</CardEyebrow>
+              <CardTitle>
+                {hasFilters
+                  ? 'No queries match these filters.'
+                  : 'No citizen queries have come in yet.'}
+              </CardTitle>
+              <CardDescription>
+                {hasFilters
+                  ? 'Try clearing the filters, or check back later.'
+                  : 'New submissions from /submit-query will land here. The Office of the Sanggunian aims to reply within 1–3 business days.'}
+              </CardDescription>
+              <CardFooter>
+                {hasFilters ? (
+                  <Button asChild variant="outline" className="font-medium">
+                    <Link href="/admin/queries">
+                      <X />
+                      Clear filters
+                    </Link>
+                  </Button>
+                ) : (
+                  <Button asChild variant="outline" className="font-medium">
+                    <Link href="/submit-query" target="_blank" rel="noopener noreferrer">
+                      <Inbox />
+                      View public submission form
+                      <ArrowRight />
+                    </Link>
+                  </Button>
+                )}
+              </CardFooter>
+            </Card>
+          ) : (
+            <>
+              <ul className="border-ink/15 divide-ink/10 flex flex-col divide-y rounded-md border">
+                {rows.map((row) => {
+                  const isUnread = row.status === 'new';
+                  return (
+                    <li
+                      key={row.id}
+                      className={cn(
+                        'hover:bg-paper-2/60 transition-colors',
+                        isUnread && 'bg-rust/5',
+                      )}
+                    >
+                      <Link
+                        href={`/admin/queries/${row.id}`}
+                        className="focus-visible:bg-paper-2 focus-visible:ring-rust/30 grid items-center gap-3 px-3 py-3 outline-none focus-visible:ring-2 sm:grid-cols-[auto_minmax(0,1fr)_auto_auto] sm:gap-4 sm:px-4"
+                        aria-label={`Open ${row.ref} — ${row.subject}`}
+                      >
+                        <span
+                          aria-hidden="true"
+                          className={cn(
+                            'mt-1.5 size-2 rounded-full sm:mt-0',
+                            row.status === 'new' && 'bg-rust',
+                            row.status === 'in_progress' && 'bg-gold',
+                            row.status === 'awaiting_citizen' && 'bg-ink-ghost',
+                            row.status === 'answered' && 'bg-success',
+                            (row.status === 'closed' || row.status === 'spam') && 'bg-ink-ghost',
+                          )}
+                        />
+
+                        <div className="flex min-w-0 flex-col">
+                          <div className="flex flex-wrap items-baseline gap-x-2">
+                            <span className="text-ink-faint font-mono text-[11px] tracking-wide">
+                              {row.ref}
+                            </span>
+                            <span className={cn('text-ink truncate', isUnread && 'font-semibold')}>
+                              {row.subject}
+                            </span>
+                          </div>
+                          <div className="text-ink-faint flex flex-wrap items-center gap-x-2 font-mono text-[11px]">
+                            <span className="truncate">{row.submitterName}</span>
+                            <span aria-hidden="true">·</span>
+                            <span className="truncate">{row.submitterEmail}</span>
+                            <span aria-hidden="true">·</span>
+                            <span>{CITIZEN_QUERY_CATEGORY_LABELS[row.category]}</span>
+                            {row.assignedToName && (
+                              <>
+                                <span aria-hidden="true">·</span>
+                                <span>→ {row.assignedToName}</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        <Badge variant={STATUS_BADGE_VARIANT[row.status]}>
+                          {CITIZEN_QUERY_STATUS_LABELS[row.status]}
+                        </Badge>
+
+                        <span
+                          className="text-ink-faint font-mono text-[11px] whitespace-nowrap tabular-nums"
+                          title={format(row.submittedAt, 'PPpp')}
+                        >
+                          {formatDistanceToNowStrict(row.submittedAt, { addSuffix: true })}
+                        </span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+
+              {(cursorString || nextCursor) && (
+                <nav
+                  aria-label="Pagination"
+                  className="mt-3 flex items-center justify-between gap-2"
+                >
+                  {cursorString ? (
+                    <Button asChild variant="ghost" size="sm" className="font-medium">
+                      <Link
+                        href={buildHref(baseFilters, { cursor: null })}
+                        aria-label="Jump to the most recent page"
+                      >
+                        <ArrowLeft />
+                        First page
+                      </Link>
+                    </Button>
+                  ) : (
+                    <span aria-hidden="true" />
+                  )}
+                  {nextCursor ? (
+                    <Button asChild variant="outline" size="sm" className="font-medium">
+                      <Link
+                        href={buildHref(baseFilters, { cursor: nextCursor })}
+                        aria-label="Load older queries"
+                      >
+                        Older queries
+                        <ArrowRight />
+                      </Link>
+                    </Button>
+                  ) : (
+                    <span className="text-ink-faint font-mono text-[11px] italic">
+                      End of results
+                    </span>
+                  )}
+                </nav>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

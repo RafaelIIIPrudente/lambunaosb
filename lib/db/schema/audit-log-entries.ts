@@ -10,6 +10,7 @@ export const auditCategory = pgEnum('audit_category', [
   'query',
   'user',
   'member',
+  'news',
   'security',
   'system',
 ]);

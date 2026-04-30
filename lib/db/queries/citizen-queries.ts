@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { and, asc, count, desc, eq } from 'drizzle-orm';
+import { and, asc, count, desc, eq, ilike, inArray, isNull, lt, or, sql } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import {
@@ -9,9 +9,17 @@ import {
   citizenQueryReplies,
   type CitizenQueryReply,
   profiles,
+  type Profile,
 } from '@/lib/db/schema';
 
 import { getCurrentTenantId } from './tenant';
+
+const ADMIN_ROLES = [
+  'secretary',
+  'vice_mayor',
+  'mayor',
+  'sb_member',
+] as const satisfies readonly Profile['role'][];
 
 export type CitizenQueryStatus = CitizenQuery['status'];
 export type CitizenQueryCategory = CitizenQuery['category'];
@@ -25,23 +33,53 @@ export type CitizenQueryRowData = {
   status: CitizenQueryStatus;
   category: CitizenQueryCategory;
   submittedAt: Date;
+  assignedTo: string | null;
   assignedToName: string | null;
 };
+
+export const QUERIES_PAGE_SIZE = 50;
 
 export type GetCitizenQueriesOptions = {
   status?: CitizenQueryStatus;
   assignedTo?: string | 'unassigned';
+  q?: string;
   limit?: number;
+  cursor?: Date;
+};
+
+export type GetCitizenQueriesResult = {
+  rows: CitizenQueryRowData[];
+  nextCursor: string | null;
 };
 
 export async function getCitizenQueries(
   options: GetCitizenQueriesOptions = {},
-): Promise<CitizenQueryRowData[]> {
+): Promise<GetCitizenQueriesResult> {
   const tenantId = await getCurrentTenantId();
   const conditions = [eq(citizenQueries.tenantId, tenantId)];
   if (options.status) conditions.push(eq(citizenQueries.status, options.status));
+  if (options.assignedTo === 'unassigned') {
+    conditions.push(isNull(citizenQueries.assignedTo));
+  } else if (options.assignedTo) {
+    conditions.push(eq(citizenQueries.assignedTo, options.assignedTo));
+  }
+  if (options.q && options.q.trim().length > 0) {
+    const needle = `%${options.q.trim()}%`;
+    const orMatch = or(
+      ilike(citizenQueries.subject, needle),
+      ilike(citizenQueries.submitterName, needle),
+      ilike(citizenQueries.submitterEmail, needle),
+      ilike(citizenQueries.ref, needle),
+    );
+    if (orMatch) conditions.push(orMatch);
+  }
+  if (options.cursor) {
+    conditions.push(lt(citizenQueries.submittedAt, options.cursor));
+  }
 
-  const baseQuery = db
+  const pageSize = options.limit ?? QUERIES_PAGE_SIZE;
+
+  const dbRows = await db
     .select({
       id: citizenQueries.id,
       ref: citizenQueries.ref,
@@ -51,26 +89,56 @@ export async function getCitizenQueries(
       status: citizenQueries.status,
       category: citizenQueries.category,
       submittedAt: citizenQueries.submittedAt,
+      assignedTo: citizenQueries.assignedTo,
       assigneeName: profiles.fullName,
     })
     .from(citizenQueries)
     .leftJoin(profiles, eq(profiles.id, citizenQueries.assignedTo))
     .where(and(...conditions))
-    .orderBy(desc(citizenQueries.submittedAt));
+    .orderBy(desc(citizenQueries.submittedAt))
+    .limit(pageSize + 1);
 
-  const rows = await (options.limit ? baseQuery.limit(options.limit) : baseQuery);
+  const hasMore = dbRows.length > pageSize;
+  const pageRows = hasMore ? dbRows.slice(0, pageSize) : dbRows;
+  const lastRow = pageRows[pageRows.length - 1];
+  const nextCursor = hasMore && lastRow ? lastRow.submittedAt.toISOString() : null;
 
-  return rows.map((row) => ({
-    id: row.id,
-    ref: row.ref,
-    submitterName: row.submitterName,
-    submitterEmail: row.submitterEmail,
-    subject: row.subject,
-    status: row.status,
-    category: row.category,
-    submittedAt: row.submittedAt,
-    assignedToName: row.assigneeName,
-  }));
+  return {
+    rows: pageRows.map((row) => ({
+      id: row.id,
+      ref: row.ref,
+      submitterName: row.submitterName,
+      submitterEmail: row.submitterEmail,
+      subject: row.subject,
+      status: row.status,
+      category: row.category,
+      submittedAt: row.submittedAt,
+      assignedTo: row.assignedTo,
+      assignedToName: row.assigneeName,
+    })),
+    nextCursor,
+  };
+}
+
+export type AssignmentCounts = {
+  unassigned: number;
+  mine: number;
+};
+
+export async function getAssignmentCounts(userId: string): Promise<AssignmentCounts> {
+  const tenantId = await getCurrentTenantId();
+  const [row] = await db
+    .select({
+      unassigned: sql<number>`count(*) filter (where ${citizenQueries.assignedTo} is null and ${citizenQueries.status} not in ('closed','spam'))`,
+      mine: sql<number>`count(*) filter (where ${citizenQueries.assignedTo} = ${userId} and ${citizenQueries.status} not in ('closed','spam'))`,
+    })
+    .from(citizenQueries)
+    .where(eq(citizenQueries.tenantId, tenantId));
+
+  return {
+    unassigned: Number(row?.unassigned ?? 0),
+    mine: Number(row?.mine ?? 0),
+  };
 }
 
 export type CitizenQueryDetail = CitizenQueryRowData & {
@@ -110,6 +178,7 @@ export async function getCitizenQueryById(id: string): Promise<CitizenQueryDetai
     status: q.status,
     category: q.category,
     submittedAt: q.submittedAt,
+    assignedTo: q.assignedTo,
     assignedToName: row.assigneeName,
     ipInet: q.ipInet,
     userAgent: q.userAgent,
@@ -139,6 +208,33 @@ export async function getCitizenQueryReplies(
     .orderBy(asc(citizenQueryReplies.sentAt));
 
   return rows.map((row) => ({ ...row.reply, authorName: row.authorName }));
+}
+
+export type AdminAssigneeOption = {
+  id: string;
+  fullName: string;
+  role: Profile['role'];
+};
+
+export async function getAdminAssigneeOptions(): Promise<AdminAssigneeOption[]> {
+  const tenantId = await getCurrentTenantId();
+  const rows = await db
+    .select({
+      id: profiles.id,
+      fullName: profiles.fullName,
+      role: profiles.role,
+    })
+    .from(profiles)
+    .where(
+      and(
+        eq(profiles.tenantId, tenantId),
+        eq(profiles.active, true),
+        inArray(profiles.role, [...ADMIN_ROLES]),
+      ),
+    )
+    .orderBy(profiles.fullName);
+
+  return rows;
 }
 
 export type StatusCounts = Record<CitizenQueryStatus | 'all', number>;

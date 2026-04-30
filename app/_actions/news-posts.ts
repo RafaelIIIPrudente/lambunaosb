@@ -34,10 +34,7 @@ function hasPublishRole(role: string): boolean {
   return (PUBLISH_ROLES as readonly string[]).includes(role);
 }
 
-// Audit category 'news' is not yet in the auditCategory enum. We use 'system'
-// with targetType='news_post' so news rows are still findable. Tracked
-// follow-up: add 'news' to the enum in a focused migration.
-const NEWS_AUDIT_CATEGORY = 'system' as const;
+const NEWS_AUDIT_CATEGORY = 'news' as const;
 
 function revalidateNewsRoutes(postId: string, slug?: string | null, alsoPublic = false) {
   revalidatePath('/admin/news');

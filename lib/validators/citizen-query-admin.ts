@@ -21,21 +21,19 @@ export const CITIZEN_QUERY_STATUS_LABELS: Record<(typeof CITIZEN_QUERY_STATUSES)
 
 export const replyToCitizenQuerySchema = z.object({
   queryId: z.uuid(),
-  bodyMd: z.string().min(10, 'Reply is too short.').max(8000),
-  attachments: z
-    .array(
-      z.object({
-        storagePath: z.string().min(1),
-        originalFilename: z.string().min(1).max(240),
-        mimeType: z.string().min(1).max(120),
-        byteSize: z.number().int().min(0),
-      }),
-    )
-    .max(5)
-    .default([]),
+  bodyMd: z
+    .string()
+    .min(10, 'Reply must be at least 10 characters.')
+    .max(8000, 'Reply must be at most 8000 characters.'),
 });
 
 export type ReplyToCitizenQueryInput = z.infer<typeof replyToCitizenQuerySchema>;
+
+export const markCitizenQueryViewedSchema = z.object({
+  queryId: z.uuid(),
+});
+
+export type MarkCitizenQueryViewedInput = z.infer<typeof markCitizenQueryViewedSchema>;
 
 export const updateCitizenQueryStatusSchema = z.object({
   queryId: z.uuid(),
