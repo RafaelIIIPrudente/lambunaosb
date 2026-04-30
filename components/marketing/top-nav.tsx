@@ -20,6 +20,7 @@ const NAV_ITEMS = [
   { href: '/', label: 'Home' },
   { href: '/news', label: 'News' },
   { href: '/members', label: 'Members' },
+  { href: '/committees', label: 'Committees' },
   { href: '/about', label: 'About' },
   { href: '/submit-query', label: 'Submit a Query' },
 ];

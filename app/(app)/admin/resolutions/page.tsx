@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardEyebrow, CardFooter, CardTitle } from '@/components/ui/card';
 import {
+  getResolutionCommittees,
   getResolutionsList,
   getResolutionSponsors,
   getResolutionYears,
@@ -45,11 +46,13 @@ function buildHref(params: {
   year?: string;
   q?: string;
   sponsor?: string;
+  committee?: string;
 }): string {
   const sp = new URLSearchParams();
   if (params.q && params.q.length > 0) sp.set('q', params.q);
   if (params.year) sp.set('year', params.year);
   if (params.sponsor) sp.set('sponsor', params.sponsor);
+  if (params.committee) sp.set('committee', params.committee);
   if (params.status && params.status !== 'all') sp.set('status', params.status);
   const qs = sp.toString();
   return qs.length > 0 ? `/admin/resolutions?${qs}` : '/admin/resolutions';
@@ -58,7 +61,13 @@ function buildHref(params: {
 export default async function ResolutionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; q?: string; year?: string; sponsor?: string }>;
+  searchParams: Promise<{
+    status?: string;
+    q?: string;
+    year?: string;
+    sponsor?: string;
+    committee?: string;
+  }>;
 }) {
   const params = await searchParams;
   const filter: FilterValue = isFilterValue(params.status) ? params.status : 'all';
@@ -66,16 +75,19 @@ export default async function ResolutionsPage({
   const yearParam = params.year?.trim() ?? '';
   const yearNumber = /^\d{4}$/.test(yearParam) ? Number(yearParam) : undefined;
   const sponsorParam = params.sponsor?.trim() ?? '';
+  const committeeParam = params.committee?.trim() ?? '';
 
-  const [rows, years, sponsors] = await Promise.all([
+  const [rows, years, sponsors, committees] = await Promise.all([
     getResolutionsList({
       ...(filter !== 'all' ? { status: filter as ResolutionStatus } : {}),
       ...(q ? { q } : {}),
       ...(yearNumber ? { year: yearNumber } : {}),
       ...(sponsorParam ? { primarySponsorId: sponsorParam } : {}),
+      ...(committeeParam ? { committeeId: committeeParam } : {}),
     }),
     getResolutionYears(),
     getResolutionSponsors(),
+    getResolutionCommittees(),
   ]);
 
   const filterOptions: { value: FilterValue; label: string }[] = [
@@ -88,7 +100,11 @@ export default async function ResolutionsPage({
   ];
 
   const hasActiveFilter =
-    filter !== 'all' || q.length > 0 || !!yearNumber || sponsorParam.length > 0;
+    filter !== 'all' ||
+    q.length > 0 ||
+    !!yearNumber ||
+    sponsorParam.length > 0 ||
+    committeeParam.length > 0;
 
   return (
     <div>
@@ -110,7 +126,13 @@ export default async function ResolutionsPage({
           return (
             <li key={opt.value}>
               <Link
-                href={buildHref({ status: opt.value, q, year: yearParam, sponsor: sponsorParam })}
+                href={buildHref({
+                  status: opt.value,
+                  q,
+                  year: yearParam,
+                  sponsor: sponsorParam,
+                  committee: committeeParam,
+                })}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
                   'border-ink/30 text-ink-soft hover:border-ink font-script rounded-pill focus-visible:ring-rust/40 inline-flex h-8 items-center gap-1.5 border px-3 text-sm transition-colors outline-none focus-visible:ring-2',
@@ -127,7 +149,7 @@ export default async function ResolutionsPage({
       <form
         method="GET"
         action="/admin/resolutions"
-        className="mb-6 grid gap-2 sm:grid-cols-[1fr_auto_auto_auto]"
+        className="mb-6 grid gap-2 sm:grid-cols-[1fr_auto_auto_auto_auto]"
         role="search"
         aria-label="Search and filter resolutions"
       >
@@ -169,6 +191,19 @@ export default async function ResolutionsPage({
           {sponsors.map((s) => (
             <option key={s.id} value={s.id}>
               {s.label} ({s.count})
+            </option>
+          ))}
+        </select>
+        <select
+          name="committee"
+          defaultValue={committeeParam}
+          aria-label="Filter by referring committee"
+          className="border-ink/20 bg-paper text-ink focus-visible:border-rust focus-visible:ring-rust/40 h-10 max-w-xs rounded-md border px-3 text-sm transition-colors outline-none focus-visible:ring-3"
+        >
+          <option value="">All committees</option>
+          {committees.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.label} ({c.count})
             </option>
           ))}
         </select>

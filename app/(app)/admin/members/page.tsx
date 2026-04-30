@@ -13,13 +13,11 @@ import { db } from '@/lib/db';
 import { getCurrentTenantId } from '@/lib/db/queries/tenant';
 import { sbMembers } from '@/lib/db/schema';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { getCompressedImageUrl, pickSizeForSurface } from '@/lib/upload/storage-url';
 import { cn } from '@/lib/utils';
 import { MEMBER_POSITION_LABELS } from '@/lib/validators/member';
 
 export const metadata = { title: 'SB Members' };
-
-const PORTRAIT_BUCKET = 'members-portraits';
-const PORTRAIT_SIGNED_URL_TTL_SECONDS = 60 * 60;
 
 export default async function MembersAdminPage() {
   const tenantId = await getCurrentTenantId();
@@ -38,10 +36,13 @@ export default async function MembersAdminPage() {
     rows
       .filter((m) => m.photoStoragePath)
       .map(async (m) => {
-        const { data } = await adminClient.storage
-          .from(PORTRAIT_BUCKET)
-          .createSignedUrl(m.photoStoragePath!, PORTRAIT_SIGNED_URL_TTL_SECONDS);
-        if (data?.signedUrl) signedUrlByMemberId.set(m.id, data.signedUrl);
+        const url = await getCompressedImageUrl({
+          supabase: adminClient,
+          bucket: 'members-portraits',
+          prefix: m.photoStoragePath,
+          size: pickSizeForSurface('thumb'),
+        });
+        if (url) signedUrlByMemberId.set(m.id, url);
       }),
   );
 

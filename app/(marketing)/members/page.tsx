@@ -12,7 +12,7 @@ import { env } from '@/env';
 import { getActiveMembers, type MemberCardData } from '@/lib/db/queries/members';
 import { getCurrentTenant } from '@/lib/db/queries/tenant';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { createSignedStorageUrl } from '@/lib/supabase/signed-urls';
+import { getCompressedImageUrl, pickSizeForSurface } from '@/lib/upload/storage-url';
 
 const SITE_URL = env.NEXT_PUBLIC_SITE_URL;
 
@@ -93,7 +93,14 @@ export default async function MembersPage() {
 
   const supabase = createAdminClient();
   const photoUrls = await Promise.all(
-    members.map((m) => createSignedStorageUrl(supabase, 'sb-member-photos', m.photoStoragePath)),
+    members.map((m) =>
+      getCompressedImageUrl({
+        supabase,
+        bucket: 'members-portraits',
+        prefix: m.photoStoragePath,
+        size: pickSizeForSurface('thumb'),
+      }),
+    ),
   );
   const memberPhotoById = new Map<string, string>();
   members.forEach((m, i) => {

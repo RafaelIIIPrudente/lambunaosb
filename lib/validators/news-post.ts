@@ -1,7 +1,6 @@
 import { z } from 'zod';
 
 export const NEWS_CATEGORIES = [
-  'health',
   'notice',
   'hearing',
   'event',
@@ -12,7 +11,6 @@ export const NEWS_CATEGORIES = [
 export type NewsCategoryValue = (typeof NEWS_CATEGORIES)[number];
 
 export const NEWS_CATEGORY_LABELS: Record<NewsCategoryValue, string> = {
-  health: 'Health',
   notice: 'Notice',
   hearing: 'Hearing',
   event: 'Event',
@@ -56,6 +54,7 @@ export const newsPostSchema = z.object({
   excerpt: z.string().max(280).optional(),
   bodyMdx: z.string().min(20, 'Body must be at least 20 characters.'),
   category: z.enum(NEWS_CATEGORIES),
+  committeeId: z.uuid().nullable().optional(),
   visibility: z.enum(NEWS_VISIBILITIES),
   pinned: z.boolean(),
   tags: z.array(z.string().min(1).max(60)).max(20),

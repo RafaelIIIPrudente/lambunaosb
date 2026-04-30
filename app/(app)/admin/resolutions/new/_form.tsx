@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Field, FieldInput, FieldSelect, FieldTextarea } from '@/components/ui/field';
 import { formatBytes } from '@/lib/format';
 import { createClient } from '@/lib/supabase/client';
+import { compressPdf } from '@/lib/upload/compress-pdf';
 import { cn } from '@/lib/utils';
 import {
   createResolutionSchema,
@@ -21,18 +22,26 @@ import {
 } from '@/lib/validators/resolution';
 
 type Option = { id: string; label: string };
+type CommitteeOption = Option & { isStanding: boolean };
 
 type Props = {
   sponsorOptions: Option[];
   meetingOptions: Option[];
+  committeeOptions: CommitteeOption[];
   tenantId: string;
 };
 
 const TODAY_DATE = new Date().toISOString().slice(0, 10);
-const MAX_BYTES = 25 * 1024 * 1024;
+const MAX_BYTES = 10 * 1024 * 1024; // 10 MB hard cap on the compressed PDF
+const RAW_SOURCE_MAX_BYTES = 25 * 1024 * 1024; // bail before pdf-lib loads anything pathological
 const PDF_BUCKET = 'resolutions-pdfs';
 
-export function NewResolutionForm({ sponsorOptions, meetingOptions, tenantId }: Props) {
+export function NewResolutionForm({
+  sponsorOptions,
+  meetingOptions,
+  committeeOptions,
+  tenantId,
+}: Props) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isPending, startTransition] = useTransition();
@@ -93,8 +102,8 @@ export function NewResolutionForm({ sponsorOptions, meetingOptions, tenantId }: 
     if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
       return 'Only PDF files are accepted.';
     }
-    if (file.size > MAX_BYTES) {
-      return `File is too large. Max ${formatBytes(MAX_BYTES)}.`;
+    if (file.size > RAW_SOURCE_MAX_BYTES) {
+      return `File is too large to process. Max ${formatBytes(RAW_SOURCE_MAX_BYTES)} before compression.`;
     }
     return null;
   }
@@ -149,6 +158,7 @@ export function NewResolutionForm({ sponsorOptions, meetingOptions, tenantId }: 
       tags,
       primarySponsorId: values.primarySponsorId || null,
       meetingId: values.meetingId || null,
+      committeeId: values.committeeId || null,
     };
 
     startTransition(async () => {
@@ -169,14 +179,44 @@ export function NewResolutionForm({ sponsorOptions, meetingOptions, tenantId }: 
         return;
       }
 
-      setProgressLabel(`Uploading ${formatBytes(pdfFile.size)}…`);
+      setProgressLabel('Compressing PDF…');
+      let compressedBlob: Blob;
+      let compressedSize: number;
+      try {
+        const result = await compressPdf(pdfFile);
+        compressedBlob = result.blob;
+        compressedSize = result.byteSize;
+      } catch (e) {
+        setProgressLabel(null);
+        form.setError('root', {
+          message: `Resolution saved, but PDF compression failed: ${e instanceof Error ? e.message : 'unknown error'}. Retry from the detail page.`,
+        });
+        router.push(`/admin/resolutions/${resolutionId}`);
+        router.refresh();
+        return;
+      }
+      if (compressedSize > MAX_BYTES) {
+        setProgressLabel(null);
+        form.setError('root', {
+          message: `Resolution saved, but PDF is over ${formatBytes(MAX_BYTES)} after compression (${formatBytes(compressedSize)}). Tip: in Acrobat, File → Save as Other → Reduced Size PDF. Retry from the detail page.`,
+        });
+        router.push(`/admin/resolutions/${resolutionId}`);
+        router.refresh();
+        return;
+      }
+
+      setProgressLabel(`Uploading ${formatBytes(compressedSize)}…`);
       const safeName = pdfFile.name.replace(/[^A-Za-z0-9._-]/g, '_');
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const path = `${tenantId}/${resolutionId}/${timestamp}_${safeName}`;
       const supabase = createClient();
       const { error: uploadError } = await supabase.storage
         .from(PDF_BUCKET)
-        .upload(path, pdfFile, { contentType: 'application/pdf', upsert: false });
+        .upload(path, compressedBlob, {
+          contentType: 'application/pdf',
+          cacheControl: '31536000, immutable',
+          upsert: false,
+        });
 
       if (uploadError) {
         setProgressLabel(null);
@@ -194,7 +234,7 @@ export function NewResolutionForm({ sponsorOptions, meetingOptions, tenantId }: 
       const recordResult = await uploadResolutionPdf({
         resolutionId,
         storagePath: path,
-        byteSize: pdfFile.size,
+        byteSize: compressedSize,
       });
       setProgressLabel(null);
       if (!recordResult.ok) {
@@ -269,7 +309,7 @@ export function NewResolutionForm({ sponsorOptions, meetingOptions, tenantId }: 
             <Upload className="text-rust mx-auto size-10" aria-hidden="true" />
             <p className="text-ink font-script mt-4 text-2xl">Drop a PDF here</p>
             <p className="text-ink-faint mt-2 font-mono text-xs">
-              or click to browse · max {formatBytes(MAX_BYTES)} · PDFs only
+              or click to browse · auto-compressed · max {formatBytes(MAX_BYTES)} after compression
             </p>
             <Button
               type="button"
@@ -358,6 +398,37 @@ export function NewResolutionForm({ sponsorOptions, meetingOptions, tenantId }: 
                 </FieldSelect>
               </Field>
             </div>
+
+            <Field
+              label="Referring committee"
+              hint="Optional · the committee that filed or endorsed this resolution"
+            >
+              <FieldSelect
+                {...form.register('committeeId', {
+                  setValueAs: (v) => (v === '' || v == null ? null : v),
+                })}
+              >
+                <option value="">No referring committee</option>
+                <optgroup label="Standing">
+                  {committeeOptions
+                    .filter((c) => c.isStanding)
+                    .map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.label}
+                      </option>
+                    ))}
+                </optgroup>
+                <optgroup label="Special">
+                  {committeeOptions
+                    .filter((c) => !c.isStanding)
+                    .map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.label}
+                      </option>
+                    ))}
+                </optgroup>
+              </FieldSelect>
+            </Field>
 
             <fieldset className="border-ink/25 rounded-md border px-4 pt-3 pb-3">
               <legend className="text-rust px-1 font-mono text-[10px] font-medium tracking-[0.18em] uppercase">

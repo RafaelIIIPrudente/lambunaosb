@@ -26,3 +26,11 @@ create policy "news_covers_insert_authors" on storage.objects
   );
 
 -- Append-only at the storage level — no UPDATE / DELETE policies.
+
+-- Bucket-level enforcement: pre-compressed WebP only, max 500 KB per variant.
+-- Three variants are uploaded per cover (_400/_800/_1600.webp).
+-- See docs/storage-optimization.md.
+update storage.buckets
+  set file_size_limit = 512000, -- 500 KB
+      allowed_mime_types = array['image/webp']
+  where id = 'news-covers';

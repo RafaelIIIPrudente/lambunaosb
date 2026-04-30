@@ -7,9 +7,11 @@ import { ChevronRight } from 'lucide-react';
 
 import { requireUser } from '@/lib/auth/require-user';
 import { db } from '@/lib/db';
+import { getCommittees } from '@/lib/db/queries/committees';
 import { getCurrentTenantId } from '@/lib/db/queries/tenant';
 import { newsPosts } from '@/lib/db/schema';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { getCompressedImageUrl, pickSizeForSurface } from '@/lib/upload/storage-url';
 
 import { CoverSection } from './_cover-section';
 import { NewsEditorForm } from './_form';
@@ -17,9 +19,6 @@ import { GallerySection } from './_gallery-section';
 
 export const metadata = { title: 'Edit news post' };
 
-const COVER_BUCKET = 'news-covers';
-const GALLERY_BUCKET = 'news-galleries';
-const SIGNED_URL_TTL_SECONDS = 60 * 60;
 const PUBLISH_ROLES = ['secretary', 'vice_mayor', 'mayor'] as const;
 
 export default async function EditNewsPostPage({ params }: { params: Promise<{ id: string }> }) {
@@ -40,27 +39,37 @@ export default async function EditNewsPostPage({ params }: { params: Promise<{ i
 
   const adminClient = createAdminClient();
 
-  const [signedDownloadUrl, galleryPhotos] = await Promise.all([
-    post.coverStoragePath
-      ? adminClient.storage
-          .from(COVER_BUCKET)
-          .createSignedUrl(post.coverStoragePath, SIGNED_URL_TTL_SECONDS)
-          .then((res) => res.data?.signedUrl ?? null)
-      : Promise.resolve(null),
+  const [signedDownloadUrl, galleryPhotos, committees] = await Promise.all([
+    getCompressedImageUrl({
+      supabase: adminClient,
+      bucket: 'news-covers',
+      prefix: post.coverStoragePath,
+      size: pickSizeForSurface('inline'),
+    }),
     Promise.all(
       post.photos.map(async (p) => {
-        const { data } = await adminClient.storage
-          .from(GALLERY_BUCKET)
-          .createSignedUrl(p.storagePath, SIGNED_URL_TTL_SECONDS);
+        const url = await getCompressedImageUrl({
+          supabase: adminClient,
+          bucket: 'news-galleries',
+          prefix: p.storagePath,
+          size: pickSizeForSurface('inline'),
+        });
         return {
           storagePath: p.storagePath,
           altText: p.altText,
           byteSize: p.byteSize,
-          signedUrl: data?.signedUrl,
+          signedUrl: url ?? undefined,
         };
       }),
     ),
+    getCommittees(),
   ]);
+
+  const committeeOptions = committees.map((c) => ({
+    id: c.id,
+    label: c.name,
+    isStanding: c.isStanding,
+  }));
 
   return (
     <div>
@@ -103,12 +112,14 @@ export default async function EditNewsPostPage({ params }: { params: Promise<{ i
           <NewsEditorForm
             postId={post.id}
             slugLocked={post.status === 'published'}
+            committeeOptions={committeeOptions}
             initialValues={{
               title: post.title,
               slug: post.slug,
               excerpt: post.excerpt ?? '',
               bodyMdx: post.bodyMdx,
               category: post.category,
+              committeeId: post.committeeId,
               visibility: post.visibility,
               pinned: post.pinned,
               tags: post.tags,

@@ -238,6 +238,12 @@ export default async function ResolutionDetailPage({
                   </dd>
                 </>
               )}
+              {resolution.committee && (
+                <>
+                  <dt className="text-ink-faint">Referring committee</dt>
+                  <dd>{resolution.committee.name}</dd>
+                </>
+              )}
             </dl>
           </section>
 

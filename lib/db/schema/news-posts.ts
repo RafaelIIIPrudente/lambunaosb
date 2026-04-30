@@ -1,11 +1,11 @@
 import { sql } from 'drizzle-orm';
 import { boolean, jsonb, pgEnum, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 
+import { committees } from './committees';
 import { profiles } from './profiles';
 import { tenants } from './tenants';
 
 export const newsCategory = pgEnum('news_category', [
-  'health',
   'notice',
   'hearing',
   'event',
@@ -34,6 +34,9 @@ export const newsPosts = pgTable('news_posts', {
   excerpt: text('excerpt'),
   bodyMdx: text('body_mdx').notNull(),
   category: newsCategory('category').notNull(),
+  // Optional referring committee. Distinct from `category` (notice/event/etc.):
+  // category is content-type, committee is organisational attribution.
+  committeeId: uuid('committee_id').references(() => committees.id, { onDelete: 'set null' }),
   status: newsStatus('status').notNull().default('draft'),
   visibility: newsVisibility('visibility').notNull().default('public'),
   pinned: boolean('pinned').notNull().default(false),

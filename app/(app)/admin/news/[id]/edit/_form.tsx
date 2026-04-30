@@ -19,13 +19,16 @@ import {
   type UpdateNewsPostInput,
 } from '@/lib/validators/news-post';
 
+type CommitteeOption = { id: string; label: string; isStanding: boolean };
+
 type Props = {
   postId: string;
   slugLocked: boolean;
   initialValues: Omit<UpdateNewsPostInput, 'postId'>;
+  committeeOptions: CommitteeOption[];
 };
 
-export function NewsEditorForm({ postId, slugLocked, initialValues }: Props) {
+export function NewsEditorForm({ postId, slugLocked, initialValues, committeeOptions }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [tagsInput, setTagsInput] = useState(initialValues.tags.join(', '));
@@ -49,7 +52,11 @@ export function NewsEditorForm({ postId, slugLocked, initialValues }: Props) {
       .filter((t) => t.length > 0);
 
     startTransition(async () => {
-      const result = await updateNewsPost({ ...values, tags });
+      const result = await updateNewsPost({
+        ...values,
+        tags,
+        committeeId: values.committeeId || null,
+      });
       if (!result.ok) {
         form.setError('root', { message: result.error });
         return;
@@ -150,6 +157,37 @@ export function NewsEditorForm({ postId, slugLocked, initialValues }: Props) {
               </FieldSelect>
             </Field>
           </div>
+
+          <Field
+            label="Referring committee"
+            hint="Optional · attribute this post to a specific committee"
+          >
+            <FieldSelect
+              {...form.register('committeeId', {
+                setValueAs: (v) => (v === '' || v == null ? null : v),
+              })}
+            >
+              <option value="">No referring committee</option>
+              <optgroup label="Standing">
+                {committeeOptions
+                  .filter((c) => c.isStanding)
+                  .map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.label}
+                    </option>
+                  ))}
+              </optgroup>
+              <optgroup label="Special">
+                {committeeOptions
+                  .filter((c) => !c.isStanding)
+                  .map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.label}
+                    </option>
+                  ))}
+              </optgroup>
+            </FieldSelect>
+          </Field>
 
           <Field label="Tags" hint="Comma-separated.">
             <FieldInput value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} />

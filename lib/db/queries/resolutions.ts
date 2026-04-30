@@ -4,6 +4,7 @@ import { and, asc, desc, eq, ilike, isNull, or, sql } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import {
+  committees,
   resolutions,
   type Resolution,
   resolutionVersions,
@@ -24,6 +25,7 @@ export type ResolutionRowData = {
   status: ResolutionStatus;
   primarySponsorName: string | null;
   coSponsorCount: number;
+  committeeName: string | null;
   dateFiled: string | null;
   publishedAt: Date | null;
 };
@@ -34,6 +36,7 @@ export type GetResolutionsListOptions = {
   publicOnly?: boolean;
   q?: string;
   primarySponsorId?: string;
+  committeeId?: string;
 };
 
 export async function getResolutionsList(
@@ -46,6 +49,9 @@ export async function getResolutionsList(
   if (options.publicOnly) conditions.push(eq(resolutions.status, 'published'));
   if (options.primarySponsorId) {
     conditions.push(eq(resolutions.primarySponsorId, options.primarySponsorId));
+  }
+  if (options.committeeId) {
+    conditions.push(eq(resolutions.committeeId, options.committeeId));
   }
   if (options.q && options.q.trim().length > 0) {
     const term = `%${options.q.trim()}%`;
@@ -64,9 +70,11 @@ export async function getResolutionsList(
       publishedAt: resolutions.publishedAt,
       sponsorName: sbMembers.fullName,
       sponsorHonorific: sbMembers.honorific,
+      committeeName: committees.name,
     })
     .from(resolutions)
     .leftJoin(sbMembers, eq(sbMembers.id, resolutions.primarySponsorId))
+    .leftJoin(committees, eq(committees.id, resolutions.committeeId))
     .where(and(...conditions))
     .orderBy(desc(resolutions.year), desc(resolutions.sequenceNumber));
 
@@ -80,6 +88,7 @@ export async function getResolutionsList(
       ? `${row.sponsorHonorific ?? 'Hon.'} ${row.sponsorName}`
       : null,
     coSponsorCount: row.coSponsorIds.length,
+    committeeName: row.committeeName,
     dateFiled: row.dateFiled,
     publishedAt: row.publishedAt,
   }));
@@ -99,6 +108,7 @@ export type ResolutionDetail = {
   coSponsorIds: string[];
   meetingId: string | null;
   committeeId: string | null;
+  committee: { id: string; name: string; slug: string } | null;
   dateFiled: string | null;
   firstReadingAt: string | null;
   secondReadingAt: string | null;
@@ -118,9 +128,13 @@ export async function getResolutionById(id: string): Promise<ResolutionDetail | 
       sponsorId: sbMembers.id,
       sponsorName: sbMembers.fullName,
       sponsorHonorific: sbMembers.honorific,
+      committeeId: committees.id,
+      committeeName: committees.name,
+      committeeSlug: committees.slug,
     })
     .from(resolutions)
     .leftJoin(sbMembers, eq(sbMembers.id, resolutions.primarySponsorId))
+    .leftJoin(committees, eq(committees.id, resolutions.committeeId))
     .where(
       and(
         eq(resolutions.tenantId, tenantId),
@@ -153,6 +167,10 @@ export async function getResolutionById(id: string): Promise<ResolutionDetail | 
     coSponsorIds: r.coSponsorIds,
     meetingId: r.meetingId,
     committeeId: r.committeeId,
+    committee:
+      row.committeeId && row.committeeName && row.committeeSlug
+        ? { id: row.committeeId, name: row.committeeName, slug: row.committeeSlug }
+        : null,
     dateFiled: r.dateFiled,
     firstReadingAt: r.firstReadingAt,
     secondReadingAt: r.secondReadingAt,
@@ -278,4 +296,23 @@ export async function getResolutionSponsors(): Promise<
     label: `${r.honorific ?? 'Hon.'} ${r.fullName}`,
     count: r.count,
   }));
+}
+
+export async function getResolutionCommittees(): Promise<
+  { id: string; label: string; count: number }[]
+> {
+  const tenantId = await getCurrentTenantId();
+  const rows = await db
+    .select({
+      id: committees.id,
+      name: committees.name,
+      sortOrder: committees.sortOrder,
+      count: sql<number>`count(${resolutions.id})::int`,
+    })
+    .from(committees)
+    .innerJoin(resolutions, eq(resolutions.committeeId, committees.id))
+    .where(and(eq(resolutions.tenantId, tenantId), isNull(resolutions.deletedAt)))
+    .groupBy(committees.id, committees.name, committees.sortOrder)
+    .orderBy(asc(committees.sortOrder), asc(committees.name));
+  return rows.map((r) => ({ id: r.id, label: r.name, count: r.count }));
 }

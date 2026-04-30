@@ -10,9 +10,10 @@ import { Button } from '@/components/ui/button';
 import { Field, FieldInput } from '@/components/ui/field';
 import { formatBytes } from '@/lib/format';
 import { createClient } from '@/lib/supabase/client';
+import { compressImage } from '@/lib/upload/compress-image';
 import { MAX_GALLERY_PHOTOS } from '@/lib/validators/news-post';
 
-const MAX_BYTES = 5 * 1024 * 1024;
+const MAX_BYTES = 8 * 1024 * 1024; // 8 MB source cap before client-side WebP compression
 const GALLERY_BUCKET = 'news-galleries';
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const ACCEPTED_EXTS = ['.jpg', '.jpeg', '.png', '.webp'];
@@ -86,25 +87,52 @@ export function GallerySection({ postId, tenantId, initialPhotos, canEdit }: Pro
         return;
       }
 
-      const safeName = file.name.replace(/[^A-Za-z0-9._-]/g, '_');
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const path = `${tenantId}/${postId}/${timestamp}_${i}_${safeName}`;
-
-      setProgressLabel(`Uploading ${i + 1}/${filesArr.length}: ${file.name}…`);
-      const { error: uploadError } = await supabase.storage
-        .from(GALLERY_BUCKET)
-        .upload(path, file, { contentType: file.type, upsert: false });
-
-      if (uploadError) {
+      setProgressLabel(`Compressing ${i + 1}/${filesArr.length}: ${file.name}…`);
+      let variants: Awaited<ReturnType<typeof compressImage>>['variants'];
+      let totalBytes: number;
+      try {
+        const result = await compressImage(file);
+        variants = result.variants;
+        totalBytes = result.totalBytes;
+      } catch (e) {
         setProgressLabel(null);
-        setError(`Upload failed for ${file.name}: ${uploadError.message}`);
+        setError(
+          `${file.name}: compression failed — ${e instanceof Error ? e.message : 'unknown error'}`,
+        );
+        return;
+      }
+      if (variants.length === 0) {
+        setProgressLabel(null);
+        setError(`${file.name}: compression produced no usable variants.`);
         return;
       }
 
+      const safeName = file.name.replace(/[^A-Za-z0-9._-]/g, '_').replace(/\.[^.]+$/, '');
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const prefix = `${tenantId}/${postId}/${timestamp}_${i}_${safeName}`;
+
+      for (const v of variants) {
+        setProgressLabel(
+          `Uploading ${i + 1}/${filesArr.length} · ${v.size}px (${formatBytes(v.byteSize)})…`,
+        );
+        const { error: uploadError } = await supabase.storage
+          .from(GALLERY_BUCKET)
+          .upload(`${prefix}_${v.size}.webp`, v.blob, {
+            contentType: 'image/webp',
+            cacheControl: '31536000, immutable',
+            upsert: false,
+          });
+        if (uploadError) {
+          setProgressLabel(null);
+          setError(`Upload failed for ${file.name} at ${v.size}px: ${uploadError.message}`);
+          return;
+        }
+      }
+
       newPhotos.push({
-        storagePath: path,
+        storagePath: prefix,
         altText: null,
-        byteSize: file.size,
+        byteSize: totalBytes,
         signedUrl: URL.createObjectURL(file),
       });
     }
@@ -199,7 +227,8 @@ export function GallerySection({ postId, tenantId, initialPhotos, canEdit }: Pro
           <p className="text-ink-faint font-mono text-xs">No photos yet.</p>
           {canAddMore && (
             <p className="text-ink-soft text-sm">
-              Add up to {MAX_GALLERY_PHOTOS} JPG/PNG/WebP images, max {formatBytes(MAX_BYTES)} each.
+              Add up to {MAX_GALLERY_PHOTOS} JPG/PNG/WebP images, max {formatBytes(MAX_BYTES)}{' '}
+              source each — auto-converted to WebP.
             </p>
           )}
         </div>

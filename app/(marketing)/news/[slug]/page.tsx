@@ -18,12 +18,11 @@ import { safeBuildtimeQuery } from '@/lib/db/queries/_safe';
 import { getAllPublishedNewsSlugs, getNewsBySlug, type NewsCategory } from '@/lib/db/queries/news';
 import { getCurrentTenant } from '@/lib/db/queries/tenant';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { createSignedStorageUrl } from '@/lib/supabase/signed-urls';
+import { getCompressedImageUrl, pickSizeForSurface } from '@/lib/upload/storage-url';
 
 const SITE_URL = env.NEXT_PUBLIC_SITE_URL;
 
 const CATEGORY_LABELS: Record<NewsCategory, string> = {
-  health: 'Health',
   notice: 'Notice',
   hearing: 'Hearing',
   event: 'Event',
@@ -80,7 +79,12 @@ export async function generateMetadata({
   const title = `${post.title} · ${tenant.displayName}`;
 
   const supabase = createAdminClient();
-  const coverUrl = await createSignedStorageUrl(supabase, 'news-covers', post.coverStoragePath);
+  const coverUrl = await getCompressedImageUrl({
+    supabase,
+    bucket: 'news-covers',
+    prefix: post.coverStoragePath,
+    size: pickSizeForSurface('hero-desktop'),
+  });
 
   const ogImage = coverUrl
     ? { url: coverUrl, width: 1200, height: 630, alt: `Cover image for ${post.title}` }
@@ -123,10 +127,20 @@ export default async function NewsPostPage({ params }: { params: Promise<{ slug:
 
   const supabase = createAdminClient();
   const [coverUrl, photoUrls] = await Promise.all([
-    createSignedStorageUrl(supabase, 'news-covers', post.coverStoragePath),
+    getCompressedImageUrl({
+      supabase,
+      bucket: 'news-covers',
+      prefix: post.coverStoragePath,
+      size: pickSizeForSurface('hero-desktop'),
+    }),
     Promise.all(
       post.photos.map((photo) =>
-        createSignedStorageUrl(supabase, 'news-galleries', photo.storagePath),
+        getCompressedImageUrl({
+          supabase,
+          bucket: 'news-galleries',
+          prefix: photo.storagePath,
+          size: pickSizeForSurface('inline'),
+        }),
       ),
     ),
   ]);

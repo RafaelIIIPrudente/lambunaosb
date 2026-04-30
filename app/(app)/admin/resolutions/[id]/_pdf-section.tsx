@@ -8,8 +8,10 @@ import { uploadResolutionPdf } from '@/app/_actions/resolutions';
 import { Button } from '@/components/ui/button';
 import { fileNameFromPath, formatBytes } from '@/lib/format';
 import { createClient } from '@/lib/supabase/client';
+import { compressPdf } from '@/lib/upload/compress-pdf';
 
-const MAX_BYTES = 25 * 1024 * 1024;
+const MAX_BYTES = 10 * 1024 * 1024; // 10 MB hard cap on the compressed PDF
+const RAW_SOURCE_MAX_BYTES = 25 * 1024 * 1024; // bail before pdf-lib loads anything pathological
 const PDF_BUCKET = 'resolutions-pdfs';
 
 type Props = {
@@ -42,8 +44,31 @@ export function PdfSection({
       setError('Only PDF files are accepted.');
       return;
     }
-    if (file.size > MAX_BYTES) {
-      setError(`File is too large. Max ${formatBytes(MAX_BYTES)}.`);
+    if (file.size > RAW_SOURCE_MAX_BYTES) {
+      setError(
+        `File is too large to process. Max ${formatBytes(RAW_SOURCE_MAX_BYTES)} before compression.`,
+      );
+      return;
+    }
+
+    setProgressLabel('Compressing…');
+    let compressedBlob: Blob;
+    let compressedSize: number;
+    try {
+      const result = await compressPdf(file);
+      compressedBlob = result.blob;
+      compressedSize = result.byteSize;
+    } catch (e) {
+      setProgressLabel(null);
+      setError(`Could not compress PDF: ${e instanceof Error ? e.message : 'unknown error'}`);
+      return;
+    }
+    if (compressedSize > MAX_BYTES) {
+      setProgressLabel(null);
+      setError(
+        `PDF is still over ${formatBytes(MAX_BYTES)} after compression (${formatBytes(compressedSize)}). ` +
+          'Tip: in Acrobat, File → Save as Other → Reduced Size PDF before re-uploading.',
+      );
       return;
     }
 
@@ -51,11 +76,15 @@ export function PdfSection({
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const path = `${tenantId}/${resolutionId}/${timestamp}_${safeName}`;
 
-    setProgressLabel(`Uploading ${formatBytes(file.size)}…`);
+    setProgressLabel(`Uploading ${formatBytes(compressedSize)}…`);
     const supabase = createClient();
     const { error: uploadError } = await supabase.storage
       .from(PDF_BUCKET)
-      .upload(path, file, { contentType: 'application/pdf', upsert: false });
+      .upload(path, compressedBlob, {
+        contentType: 'application/pdf',
+        cacheControl: '31536000, immutable',
+        upsert: false,
+      });
 
     if (uploadError) {
       setProgressLabel(null);
@@ -68,7 +97,7 @@ export function PdfSection({
       const result = await uploadResolutionPdf({
         resolutionId,
         storagePath: path,
-        byteSize: file.size,
+        byteSize: compressedSize,
       });
       setProgressLabel(null);
       if (!result.ok) {
@@ -149,7 +178,7 @@ export function PdfSection({
             {progressLabel ?? (pdfStoragePath ? 'Replace PDF' : 'Upload PDF')}
           </Button>
           <span className="text-ink-faint font-mono text-[11px]">
-            PDF only · max {formatBytes(MAX_BYTES)}
+            PDF only · auto-compressed · max {formatBytes(MAX_BYTES)} after compression
           </span>
         </div>
       )}

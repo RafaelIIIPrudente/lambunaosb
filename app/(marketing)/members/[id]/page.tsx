@@ -20,7 +20,7 @@ import { getAllMemberIds, getMemberById, type CommitteeMembership } from '@/lib/
 import { getRecentSponsorshipsByMember } from '@/lib/db/queries/resolutions';
 import { getCurrentTenant } from '@/lib/db/queries/tenant';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { createSignedStorageUrl } from '@/lib/supabase/signed-urls';
+import { getCompressedImageUrl, pickSizeForSurface } from '@/lib/upload/storage-url';
 
 const SITE_URL = env.NEXT_PUBLIC_SITE_URL;
 
@@ -87,11 +87,12 @@ export async function generateMetadata({
     `${fullName}, ${POSITION_LABELS[member.position] ?? 'Member'} of ${tenant.displayName}.`;
 
   const supabase = createAdminClient();
-  const photoUrl = await createSignedStorageUrl(
+  const photoUrl = await getCompressedImageUrl({
     supabase,
-    'sb-member-photos',
-    member.photoStoragePath,
-  );
+    bucket: 'members-portraits',
+    prefix: member.photoStoragePath,
+    size: pickSizeForSurface('inline'),
+  });
 
   const ogImage = photoUrl
     ? { url: photoUrl, width: 1200, height: 1600, alt: `Portrait of ${fullName}` }
@@ -141,11 +142,12 @@ export default async function MemberDetailPage({ params }: { params: Promise<{ i
   ]);
 
   const supabase = createAdminClient();
-  const photoUrl = await createSignedStorageUrl(
+  const photoUrl = await getCompressedImageUrl({
     supabase,
-    'sb-member-photos',
-    member.photoStoragePath,
-  );
+    bucket: 'members-portraits',
+    prefix: member.photoStoragePath,
+    size: pickSizeForSurface('inline'),
+  });
 
   const fullName = `${member.honorific} ${member.fullName}`;
 

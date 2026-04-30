@@ -26,3 +26,10 @@ create policy "resolutions_pdfs_insert_authors" on storage.objects
 
 -- Append-only at the storage level too — no UPDATE / DELETE policies.
 -- The Secretary can purge via the dashboard if absolutely necessary.
+
+-- Bucket-level enforcement: PDFs only, max 10 MB after client-side
+-- pdf-lib lossless re-save. See docs/storage-optimization.md.
+update storage.buckets
+  set file_size_limit = 10485760, -- 10 MB
+      allowed_mime_types = array['application/pdf']
+  where id = 'resolutions-pdfs';

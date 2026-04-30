@@ -10,14 +10,12 @@ import { Button } from '@/components/ui/button';
 import { requireUser } from '@/lib/auth/require-user';
 import { getMemberById } from '@/lib/db/queries/members';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { getCompressedImageUrl, pickSizeForSurface } from '@/lib/upload/storage-url';
 import { COMMITTEE_ROLE_LABELS, MEMBER_POSITION_LABELS } from '@/lib/validators/member';
 
 import { MemberActionsBar } from './_actions-bar';
 
 export const metadata = { title: 'Member detail' };
-
-const PORTRAIT_BUCKET = 'members-portraits';
-const PORTRAIT_SIGNED_URL_TTL_SECONDS = 60 * 60;
 
 export default async function MemberDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -26,12 +24,12 @@ export default async function MemberDetailPage({ params }: { params: Promise<{ i
   const member = await getMemberById(id);
   if (!member) notFound();
 
-  const signedDownloadUrl = member.photoStoragePath
-    ? await createAdminClient()
-        .storage.from(PORTRAIT_BUCKET)
-        .createSignedUrl(member.photoStoragePath, PORTRAIT_SIGNED_URL_TTL_SECONDS)
-        .then((res) => res.data?.signedUrl ?? null)
-    : null;
+  const signedDownloadUrl = await getCompressedImageUrl({
+    supabase: createAdminClient(),
+    bucket: 'members-portraits',
+    prefix: member.photoStoragePath,
+    size: pickSizeForSurface('inline'),
+  });
 
   return (
     <div>

@@ -13,12 +13,11 @@ import { env } from '@/env';
 import { getPublishedNews, type NewsCategory } from '@/lib/db/queries/news';
 import { getCurrentTenant } from '@/lib/db/queries/tenant';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { createSignedStorageUrl } from '@/lib/supabase/signed-urls';
+import { getCompressedImageUrl, pickSizeForSurface } from '@/lib/upload/storage-url';
 
 const SITE_URL = env.NEXT_PUBLIC_SITE_URL;
 
 const CATEGORY_LABELS: Record<NewsCategory, string> = {
-  health: 'Health',
   notice: 'Notice',
   hearing: 'Hearing',
   event: 'Event',
@@ -83,7 +82,14 @@ export default async function NewsPage({
 
   const supabase = createAdminClient();
   const coverUrls = await Promise.all(
-    items.map((post) => createSignedStorageUrl(supabase, 'news-covers', post.coverStoragePath)),
+    items.map((post) =>
+      getCompressedImageUrl({
+        supabase,
+        bucket: 'news-covers',
+        prefix: post.coverStoragePath,
+        size: pickSizeForSurface('thumb'),
+      }),
+    ),
   );
   const coverByPostId = new Map<string, string>();
   items.forEach((post, i) => {

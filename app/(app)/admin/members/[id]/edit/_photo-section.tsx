@@ -9,8 +9,10 @@ import { updateMemberPhoto } from '@/app/_actions/members';
 import { Button } from '@/components/ui/button';
 import { formatBytes } from '@/lib/format';
 import { createClient } from '@/lib/supabase/client';
+import { compressImage } from '@/lib/upload/compress-image';
 
-const MAX_BYTES = 5 * 1024 * 1024;
+const MAX_BYTES = 8 * 1024 * 1024; // 8 MB source cap before client-side WebP compression
+const PORTRAIT_QUALITY = 0.78; // higher than default — faces are quality-sensitive
 const PORTRAIT_BUCKET = 'members-portraits';
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const ACCEPTED_EXTS = ['.jpg', '.jpeg', '.png', '.webp'];
@@ -56,28 +58,51 @@ export function PhotoSection({
       return;
     }
 
-    const safeName = file.name.replace(/[^A-Za-z0-9._-]/g, '_');
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const path = `${tenantId}/${memberId}/${timestamp}_${safeName}`;
-
-    setProgressLabel(`Uploading ${formatBytes(file.size)}…`);
-    const supabase = createClient();
-    const { error: uploadError } = await supabase.storage
-      .from(PORTRAIT_BUCKET)
-      .upload(path, file, { contentType: file.type, upsert: false });
-
-    if (uploadError) {
+    setProgressLabel('Compressing…');
+    let variants: Awaited<ReturnType<typeof compressImage>>['variants'];
+    let totalBytes: number;
+    try {
+      const result = await compressImage(file, { quality: PORTRAIT_QUALITY });
+      variants = result.variants;
+      totalBytes = result.totalBytes;
+    } catch (e) {
       setProgressLabel(null);
-      setError(`Upload failed: ${uploadError.message}`);
+      setError(`Could not compress image: ${e instanceof Error ? e.message : 'unknown error'}`);
       return;
+    }
+    if (variants.length === 0) {
+      setProgressLabel(null);
+      setError('Compression produced no usable variants. Try a different image.');
+      return;
+    }
+
+    const safeName = file.name.replace(/[^A-Za-z0-9._-]/g, '_').replace(/\.[^.]+$/, '');
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const prefix = `${tenantId}/${memberId}/${timestamp}_${safeName}`;
+
+    const supabase = createClient();
+    for (const v of variants) {
+      setProgressLabel(`Uploading ${v.size}px (${formatBytes(v.byteSize)})…`);
+      const { error: uploadError } = await supabase.storage
+        .from(PORTRAIT_BUCKET)
+        .upload(`${prefix}_${v.size}.webp`, v.blob, {
+          contentType: 'image/webp',
+          cacheControl: '31536000, immutable',
+          upsert: false,
+        });
+      if (uploadError) {
+        setProgressLabel(null);
+        setError(`Upload failed at ${v.size}px: ${uploadError.message}`);
+        return;
+      }
     }
 
     setProgressLabel('Recording…');
     startTransition(async () => {
       const result = await updateMemberPhoto({
         memberId,
-        storagePath: path,
-        byteSize: file.size,
+        storagePath: prefix,
+        byteSize: totalBytes,
       });
       setProgressLabel(null);
       if (!result.ok) {
@@ -141,7 +166,8 @@ export function PhotoSection({
             {progressLabel ?? (photoStoragePath ? 'Replace photo' : 'Upload photo')}
           </Button>
           <p className="text-ink-faint font-mono text-[11px]">
-            JPG · PNG · WebP · max {formatBytes(MAX_BYTES)} · 3:4 portrait
+            JPG · PNG · WebP · max {formatBytes(MAX_BYTES)} source · 3:4 portrait · auto-converted
+            to WebP
           </p>
         </>
       )}

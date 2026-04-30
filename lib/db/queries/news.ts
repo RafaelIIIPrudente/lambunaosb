@@ -1,9 +1,15 @@
 import 'server-only';
 
-import { and, desc, eq, isNull } from 'drizzle-orm';
+import { and, asc, desc, eq, isNull, sql } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
-import { newsPosts, type NewsPost, type NewsPostPhoto, profiles } from '@/lib/db/schema';
+import {
+  committees,
+  newsPosts,
+  type NewsPost,
+  type NewsPostPhoto,
+  profiles,
+} from '@/lib/db/schema';
 
 import { getCurrentTenantId } from './tenant';
 
@@ -166,10 +172,23 @@ export type AdminNewsRowData = {
   scheduledAt: Date | null;
   authorName: string;
   coverStoragePath: string | null;
+  committeeId: string | null;
+  committeeName: string | null;
 };
 
-export async function getAdminNewsList(): Promise<AdminNewsRowData[]> {
+export type GetAdminNewsListOptions = {
+  committeeId?: string;
+};
+
+export async function getAdminNewsList(
+  options: GetAdminNewsListOptions = {},
+): Promise<AdminNewsRowData[]> {
   const tenantId = await getCurrentTenantId();
+  const conditions = [eq(newsPosts.tenantId, tenantId), isNull(newsPosts.deletedAt)];
+  if (options.committeeId) {
+    conditions.push(eq(newsPosts.committeeId, options.committeeId));
+  }
+
   const rows = await db
     .select({
       id: newsPosts.id,
@@ -184,10 +203,13 @@ export async function getAdminNewsList(): Promise<AdminNewsRowData[]> {
       scheduledAt: newsPosts.scheduledAt,
       coverStoragePath: newsPosts.coverStoragePath,
       authorName: profiles.fullName,
+      committeeId: newsPosts.committeeId,
+      committeeName: committees.name,
     })
     .from(newsPosts)
     .leftJoin(profiles, eq(profiles.id, newsPosts.authorId))
-    .where(and(eq(newsPosts.tenantId, tenantId), isNull(newsPosts.deletedAt)))
+    .leftJoin(committees, eq(committees.id, newsPosts.committeeId))
+    .where(and(...conditions))
     .orderBy(desc(newsPosts.createdAt));
 
   return rows.map((row) => ({
@@ -203,5 +225,24 @@ export async function getAdminNewsList(): Promise<AdminNewsRowData[]> {
     scheduledAt: row.scheduledAt,
     coverStoragePath: row.coverStoragePath,
     authorName: row.authorName ?? 'Office of the Secretary',
+    committeeId: row.committeeId,
+    committeeName: row.committeeName,
   }));
+}
+
+export async function getNewsCommittees(): Promise<{ id: string; label: string; count: number }[]> {
+  const tenantId = await getCurrentTenantId();
+  const rows = await db
+    .select({
+      id: committees.id,
+      name: committees.name,
+      sortOrder: committees.sortOrder,
+      count: sql<number>`count(${newsPosts.id})::int`,
+    })
+    .from(committees)
+    .innerJoin(newsPosts, eq(newsPosts.committeeId, committees.id))
+    .where(and(eq(newsPosts.tenantId, tenantId), isNull(newsPosts.deletedAt)))
+    .groupBy(committees.id, committees.name, committees.sortOrder)
+    .orderBy(asc(committees.sortOrder), asc(committees.name));
+  return rows.map((r) => ({ id: r.id, label: r.name, count: r.count }));
 }

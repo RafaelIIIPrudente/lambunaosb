@@ -9,8 +9,9 @@ import { AdminPageHeader } from '@/components/app/admin-page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardEyebrow, CardFooter, CardTitle } from '@/components/ui/card';
-import { getAdminNewsList } from '@/lib/db/queries/news';
+import { getAdminNewsList, getNewsCommittees } from '@/lib/db/queries/news';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { getCompressedImageUrl, pickSizeForSurface } from '@/lib/upload/storage-url';
 import { cn } from '@/lib/utils';
 import {
   NEWS_CATEGORY_LABELS,
@@ -21,9 +22,6 @@ import {
 } from '@/lib/validators/news-post';
 
 export const metadata = { title: 'News' };
-
-const COVER_BUCKET = 'news-covers';
-const COVER_SIGNED_URL_TTL_SECONDS = 60 * 60;
 
 type FilterValue = NewsStatusValue | 'all';
 
@@ -43,15 +41,27 @@ function isFilterValue(value: string | undefined): value is FilterValue {
   return (NEWS_STATUSES as readonly string[]).includes(value);
 }
 
+function buildHref(params: { status?: FilterValue; committee?: string }): string {
+  const sp = new URLSearchParams();
+  if (params.status && params.status !== 'all') sp.set('status', params.status);
+  if (params.committee) sp.set('committee', params.committee);
+  const qs = sp.toString();
+  return qs.length > 0 ? `/admin/news?${qs}` : '/admin/news';
+}
+
 export default async function NewsAdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; committee?: string }>;
 }) {
   const params = await searchParams;
   const filter: FilterValue = isFilterValue(params.status) ? params.status : 'all';
+  const committeeParam = params.committee?.trim() ?? '';
 
-  const allRows = await getAdminNewsList();
+  const [allRows, committees] = await Promise.all([
+    getAdminNewsList(committeeParam ? { committeeId: committeeParam } : {}),
+    getNewsCommittees(),
+  ]);
   const rows = filter === 'all' ? allRows : allRows.filter((r) => r.status === filter);
 
   const adminClient = createAdminClient();
@@ -60,10 +70,13 @@ export default async function NewsAdminPage({
     rows
       .filter((r) => r.coverStoragePath)
       .map(async (r) => {
-        const { data } = await adminClient.storage
-          .from(COVER_BUCKET)
-          .createSignedUrl(r.coverStoragePath!, COVER_SIGNED_URL_TTL_SECONDS);
-        if (data?.signedUrl) signedUrlByPostId.set(r.id, data.signedUrl);
+        const url = await getCompressedImageUrl({
+          supabase: adminClient,
+          bucket: 'news-covers',
+          prefix: r.coverStoragePath,
+          size: pickSizeForSurface('thumb'),
+        });
+        if (url) signedUrlByPostId.set(r.id, url);
       }),
   );
 
@@ -100,26 +113,62 @@ export default async function NewsAdminPage({
         }
       />
 
-      <ul role="group" aria-label="Filter by status" className="mb-6 flex flex-wrap gap-1.5">
-        {filterOptions.map((opt) => {
-          const active = filter === opt.value;
-          return (
-            <li key={opt.value}>
-              <Link
-                href={opt.value === 'all' ? '/admin/news' : `/admin/news?status=${opt.value}`}
-                aria-current={active ? 'page' : undefined}
-                className={cn(
-                  'border-ink/30 text-ink-soft hover:border-ink font-script rounded-pill focus-visible:ring-rust/40 inline-flex h-8 items-center gap-1.5 border px-3 text-sm transition-colors outline-none focus-visible:ring-2',
-                  active && 'bg-rust border-rust text-paper hover:border-rust',
-                )}
-              >
-                {opt.label}
-                <span className="font-mono text-[10px] tabular-nums opacity-75">({opt.count})</span>
+      <div className="mb-6 flex flex-wrap items-center gap-3">
+        <ul role="group" aria-label="Filter by status" className="flex flex-wrap gap-1.5">
+          {filterOptions.map((opt) => {
+            const active = filter === opt.value;
+            return (
+              <li key={opt.value}>
+                <Link
+                  href={buildHref({ status: opt.value, committee: committeeParam })}
+                  aria-current={active ? 'page' : undefined}
+                  className={cn(
+                    'border-ink/30 text-ink-soft hover:border-ink font-script rounded-pill focus-visible:ring-rust/40 inline-flex h-8 items-center gap-1.5 border px-3 text-sm transition-colors outline-none focus-visible:ring-2',
+                    active && 'bg-rust border-rust text-paper hover:border-rust',
+                  )}
+                >
+                  {opt.label}
+                  <span className="font-mono text-[10px] tabular-nums opacity-75">
+                    ({opt.count})
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+
+        <form
+          action="/admin/news"
+          method="get"
+          className="flex items-center gap-2"
+          aria-label="Filter news by committee"
+        >
+          {filter !== 'all' && <input type="hidden" name="status" value={filter} />}
+          <select
+            name="committee"
+            defaultValue={committeeParam}
+            aria-label="Filter by referring committee"
+            className="border-ink/20 bg-paper text-ink focus-visible:border-rust focus-visible:ring-rust/40 h-8 max-w-xs rounded-md border px-2 text-xs transition-colors outline-none focus-visible:ring-2"
+          >
+            <option value="">All committees</option>
+            {committees.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.label} ({c.count})
+              </option>
+            ))}
+          </select>
+          <Button type="submit" variant="outline" size="sm" className="font-medium">
+            Apply
+          </Button>
+          {committeeParam && (
+            <Button asChild type="button" variant="ghost" size="sm" className="font-medium">
+              <Link href={buildHref({ status: filter })} aria-label="Clear committee filter">
+                <X />
               </Link>
-            </li>
-          );
-        })}
-      </ul>
+            </Button>
+          )}
+        </form>
+      </div>
 
       {rows.length === 0 ? (
         <Card className="max-w-xl">

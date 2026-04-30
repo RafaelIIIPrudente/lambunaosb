@@ -57,25 +57,148 @@ const TENANT_DATA = {
   sealStoragePath: 'public/seal/lambunao-seal.png',
 };
 
+// Canonical 22 SB Lambunao committees. Source of truth:
+// memory/project_committees.md (provided by Bryan 2026-05-01).
+//
+// Slug rule (deterministic): lowercase the name, drop commas/ampersands/periods,
+// replace whitespace with single hyphens, collapse repeats. Hyphens already
+// present in the name are preserved (so "Land-use" → "...-land-use").
+//
+// `isStanding: false` flags the two Special Committees (#7 and #17 in memory).
+// Wording is verbatim — do not "fix" punctuation, casing, or word choice.
 const COMMITTEE_SEED: Omit<NewCommittee, 'tenantId'>[] = [
-  { slug: 'rules', name: 'Rules', isStanding: true, sortOrder: 10 },
-  { slug: 'appropriations', name: 'Appropriations', isStanding: true, sortOrder: 20 },
-  { slug: 'health-sanitation', name: 'Health & Sanitation', isStanding: true, sortOrder: 30 },
-  { slug: 'education', name: 'Education', isStanding: true, sortOrder: 40 },
-  { slug: 'public-safety', name: 'Public Safety', isStanding: true, sortOrder: 50 },
   {
-    slug: 'roads-infrastructure',
-    name: 'Roads & Infrastructure',
+    slug: 'committee-on-finance-budget-and-appropriations',
+    name: 'Committee on Finance, Budget and Appropriations',
+    isStanding: true,
+    sortOrder: 10,
+  },
+  {
+    slug: 'committee-on-economic-enterprise',
+    name: 'Committee on Economic Enterprise',
+    isStanding: true,
+    sortOrder: 20,
+  },
+  {
+    slug: 'committee-on-trade-commerce-promotions-and-industry',
+    name: 'Committee on Trade, Commerce, Promotions, and Industry',
+    isStanding: true,
+    sortOrder: 30,
+  },
+  {
+    slug: 'committee-on-legal-matters-and-ordinances',
+    name: 'Committee on Legal Matters and Ordinances',
+    isStanding: true,
+    sortOrder: 40,
+  },
+  {
+    slug: 'committee-on-tourism-and-culture',
+    name: 'Committee on Tourism and Culture',
+    isStanding: true,
+    sortOrder: 50,
+  },
+  {
+    slug: 'committee-on-health-and-sanitation',
+    name: 'Committee on Health and Sanitation',
     isStanding: true,
     sortOrder: 60,
   },
-  { slug: 'women-family', name: 'Women & Family', isStanding: true, sortOrder: 70 },
-  { slug: 'social-services', name: 'Social Services', isStanding: true, sortOrder: 80 },
-  { slug: 'environment', name: 'Environment', isStanding: true, sortOrder: 90 },
-  { slug: 'agriculture', name: 'Agriculture', isStanding: true, sortOrder: 100 },
-  { slug: 'public-works', name: 'Public Works', isStanding: true, sortOrder: 110 },
-  { slug: 'tourism', name: 'Tourism', isStanding: true, sortOrder: 120 },
-  { slug: 'trade', name: 'Trade', isStanding: true, sortOrder: 130 },
+  {
+    slug: 'special-committee-on-information-and-communications-technology',
+    name: 'Special Committee on Information and Communications Technology',
+    isStanding: false,
+    sortOrder: 70,
+  },
+  {
+    slug: 'committee-on-games-and-amusement',
+    name: 'Committee on Games and Amusement',
+    isStanding: true,
+    sortOrder: 80,
+  },
+  {
+    slug: 'committee-on-public-utilities-and-facilities',
+    name: 'Committee on Public Utilities and Facilities',
+    isStanding: true,
+    sortOrder: 90,
+  },
+  {
+    slug: 'committee-on-agriculture-cooperatives-and-csos',
+    name: 'Committee on Agriculture, Cooperatives, and CSOs',
+    isStanding: true,
+    sortOrder: 100,
+  },
+  {
+    slug: 'committee-on-women-and-family',
+    name: 'Committee on Women and Family',
+    isStanding: true,
+    sortOrder: 110,
+  },
+  {
+    slug: 'committee-on-social-welfare-and-development',
+    name: 'Committee on Social Welfare and Development',
+    isStanding: true,
+    sortOrder: 120,
+  },
+  {
+    slug: 'committee-on-education',
+    name: 'Committee on Education',
+    isStanding: true,
+    sortOrder: 130,
+  },
+  {
+    slug: 'committee-on-infrastructure-and-public-works',
+    name: 'Committee on Infrastructure and Public Works',
+    isStanding: true,
+    sortOrder: 140,
+  },
+  {
+    slug: 'committee-on-environmental-protection',
+    name: 'Committee on Environmental Protection',
+    isStanding: true,
+    sortOrder: 150,
+  },
+  {
+    slug: 'committee-on-peace-and-order-and-public-safety',
+    name: 'Committee on Peace and Order and Public Safety',
+    isStanding: true,
+    sortOrder: 160,
+  },
+  {
+    slug: 'special-committee-on-disaster-risk-reduction-and-management',
+    name: 'Special Committee on Disaster Risk Reduction and Management',
+    isStanding: false,
+    sortOrder: 170,
+  },
+  {
+    slug: 'committee-on-human-rights',
+    name: 'Committee on Human Rights',
+    isStanding: true,
+    sortOrder: 180,
+  },
+  {
+    slug: 'committee-on-housing-and-land-use',
+    name: 'Committee on Housing and Land-use',
+    isStanding: true,
+    sortOrder: 190,
+  },
+  {
+    slug: 'committee-on-sports-and-youth-development',
+    name: 'Committee on Sports and Youth Development',
+    isStanding: true,
+    sortOrder: 200,
+  },
+  {
+    slug: 'committee-on-barangay-affairs',
+    name: 'Committee on Barangay Affairs',
+    isStanding: true,
+    sortOrder: 210,
+  },
+  {
+    slug: 'committee-on-good-governance-public-ethics-accountability',
+    name: 'Committee on Good Governance, Public Ethics, & Accountability',
+    isStanding: true,
+    sortOrder: 220,
+  },
 ];
 
 type MemberSeed = Omit<NewSBMember, 'tenantId'> & {
@@ -102,10 +225,9 @@ const MEMBER_SEED: MemberSeed[] = [
     sortOrder: 10,
     seniority: 'Presiding Officer',
     showOnPublic: true,
-    committeeRoles: [
-      { slug: 'rules', role: 'chair' },
-      { slug: 'appropriations', role: 'member' },
-    ],
+    // Vice Mayor presides over the SB; no chairmanships in the canonical 22.
+    // Kept as a member of Finance/Budget for the placeholder fixture.
+    committeeRoles: [{ slug: 'committee-on-finance-budget-and-appropriations', role: 'member' }],
   },
   {
     fullName: 'Maria dela Cruz',
@@ -117,8 +239,8 @@ const MEMBER_SEED: MemberSeed[] = [
     seniority: 'Senior Member',
     showOnPublic: true,
     committeeRoles: [
-      { slug: 'health-sanitation', role: 'chair' },
-      { slug: 'education', role: 'member' },
+      { slug: 'committee-on-health-and-sanitation', role: 'chair' },
+      { slug: 'committee-on-education', role: 'member' },
     ],
   },
   {
@@ -130,8 +252,8 @@ const MEMBER_SEED: MemberSeed[] = [
     sortOrder: 30,
     showOnPublic: true,
     committeeRoles: [
-      { slug: 'public-safety', role: 'chair' },
-      { slug: 'roads-infrastructure', role: 'member' },
+      { slug: 'committee-on-peace-and-order-and-public-safety', role: 'chair' },
+      { slug: 'committee-on-infrastructure-and-public-works', role: 'member' },
     ],
   },
   {
@@ -143,8 +265,8 @@ const MEMBER_SEED: MemberSeed[] = [
     sortOrder: 40,
     showOnPublic: true,
     committeeRoles: [
-      { slug: 'women-family', role: 'chair' },
-      { slug: 'social-services', role: 'member' },
+      { slug: 'committee-on-women-and-family', role: 'chair' },
+      { slug: 'committee-on-social-welfare-and-development', role: 'member' },
     ],
   },
   {
@@ -156,8 +278,8 @@ const MEMBER_SEED: MemberSeed[] = [
     sortOrder: 50,
     showOnPublic: true,
     committeeRoles: [
-      { slug: 'environment', role: 'chair' },
-      { slug: 'agriculture', role: 'member' },
+      { slug: 'committee-on-environmental-protection', role: 'chair' },
+      { slug: 'committee-on-agriculture-cooperatives-and-csos', role: 'member' },
     ],
   },
   {
@@ -169,8 +291,8 @@ const MEMBER_SEED: MemberSeed[] = [
     sortOrder: 60,
     showOnPublic: true,
     committeeRoles: [
-      { slug: 'appropriations', role: 'chair' },
-      { slug: 'public-works', role: 'member' },
+      { slug: 'committee-on-finance-budget-and-appropriations', role: 'chair' },
+      { slug: 'committee-on-infrastructure-and-public-works', role: 'member' },
     ],
   },
   {
@@ -182,8 +304,8 @@ const MEMBER_SEED: MemberSeed[] = [
     sortOrder: 70,
     showOnPublic: true,
     committeeRoles: [
-      { slug: 'tourism', role: 'chair' },
-      { slug: 'trade', role: 'member' },
+      { slug: 'committee-on-tourism-and-culture', role: 'chair' },
+      { slug: 'committee-on-trade-commerce-promotions-and-industry', role: 'member' },
     ],
   },
 ];

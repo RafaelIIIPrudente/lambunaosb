@@ -27,3 +27,11 @@ create policy "members_portraits_insert_authors" on storage.objects
 
 -- Append-only at the storage level — no UPDATE / DELETE policies.
 -- The Secretary can purge via the dashboard if needed.
+
+-- Bucket-level enforcement: pre-compressed WebP only, max 500 KB per variant.
+-- Three variants are uploaded per portrait (_400/_800/_1600.webp).
+-- See docs/storage-optimization.md.
+update storage.buckets
+  set file_size_limit = 512000, -- 500 KB
+      allowed_mime_types = array['image/webp']
+  where id = 'members-portraits';

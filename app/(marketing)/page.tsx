@@ -19,7 +19,7 @@ import { getUpcomingMeetings } from '@/lib/db/queries/meetings';
 import { getFeaturedNews } from '@/lib/db/queries/news';
 import { getCurrentTenant } from '@/lib/db/queries/tenant';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { createSignedStorageUrl } from '@/lib/supabase/signed-urls';
+import { getCompressedImageUrl, pickSizeForSurface } from '@/lib/upload/storage-url';
 
 const SITE_URL = env.NEXT_PUBLIC_SITE_URL;
 const PAGE_TITLE = 'Sangguniang Bayan ng Lambunao | Official Site';
@@ -27,7 +27,6 @@ const PAGE_DESCRIPTION =
   'The official site of the Sangguniang Bayan ng Lambunao — the legislative council of Lambunao, Iloilo. Read our resolutions, follow sessions, meet your council, and submit a query.';
 
 const CATEGORY_LABELS: Record<string, string> = {
-  health: 'Health',
   notice: 'Notice',
   hearing: 'Hearing',
   event: 'Event',
@@ -91,12 +90,22 @@ export default async function LandingPage() {
   const [newsCoverUrls, memberPhotoUrls] = await Promise.all([
     Promise.all(
       featuredNews.map((post) =>
-        createSignedStorageUrl(supabase, 'news-covers', post.coverStoragePath),
+        getCompressedImageUrl({
+          supabase,
+          bucket: 'news-covers',
+          prefix: post.coverStoragePath,
+          size: pickSizeForSurface('thumb'),
+        }),
       ),
     ),
     Promise.all(
       previewMembers.map((m) =>
-        createSignedStorageUrl(supabase, 'sb-member-photos', m.photoStoragePath),
+        getCompressedImageUrl({
+          supabase,
+          bucket: 'members-portraits',
+          prefix: m.photoStoragePath,
+          size: pickSizeForSurface('thumb'),
+        }),
       ),
     ),
   ]);

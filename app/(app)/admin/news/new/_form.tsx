@@ -19,7 +19,13 @@ import {
   type NewsPostInput,
 } from '@/lib/validators/news-post';
 
-export function NewsComposerForm() {
+type CommitteeOption = { id: string; label: string; isStanding: boolean };
+
+type Props = {
+  committeeOptions: CommitteeOption[];
+};
+
+export function NewsComposerForm({ committeeOptions }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [tagsInput, setTagsInput] = useState('');
@@ -33,6 +39,7 @@ export function NewsComposerForm() {
       excerpt: '',
       bodyMdx: '',
       category: 'announcement',
+      committeeId: null,
       visibility: 'public',
       pinned: false,
       tags: [],
@@ -67,7 +74,11 @@ export function NewsComposerForm() {
       .filter((t) => t.length > 0);
 
     startTransition(async () => {
-      const result = await createNewsPost({ ...values, tags });
+      const result = await createNewsPost({
+        ...values,
+        tags,
+        committeeId: values.committeeId || null,
+      });
       if (!result.ok) {
         form.setError('root', { message: result.error });
         return;
@@ -186,6 +197,37 @@ export function NewsComposerForm() {
                 </FieldSelect>
               </Field>
             </div>
+
+            <Field
+              label="Referring committee"
+              hint="Optional · attribute this post to a specific committee"
+            >
+              <FieldSelect
+                {...form.register('committeeId', {
+                  setValueAs: (v) => (v === '' || v == null ? null : v),
+                })}
+              >
+                <option value="">No referring committee</option>
+                <optgroup label="Standing">
+                  {committeeOptions
+                    .filter((c) => c.isStanding)
+                    .map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.label}
+                      </option>
+                    ))}
+                </optgroup>
+                <optgroup label="Special">
+                  {committeeOptions
+                    .filter((c) => !c.isStanding)
+                    .map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.label}
+                      </option>
+                    ))}
+                </optgroup>
+              </FieldSelect>
+            </Field>
 
             <Field label="Tags" hint="Comma-separated, e.g. health, infrastructure, public-safety">
               <FieldInput

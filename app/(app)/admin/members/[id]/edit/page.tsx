@@ -9,14 +9,13 @@ import { getCommittees } from '@/lib/db/queries/committees';
 import { getMemberById } from '@/lib/db/queries/members';
 import { getCurrentTenantId } from '@/lib/db/queries/tenant';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { getCompressedImageUrl, pickSizeForSurface } from '@/lib/upload/storage-url';
 
 import { MemberEditorForm } from './_form';
 import { PhotoSection } from './_photo-section';
 
 export const metadata = { title: 'Edit SB member' };
 
-const PORTRAIT_BUCKET = 'members-portraits';
-const PORTRAIT_SIGNED_URL_TTL_SECONDS = 60 * 60;
 const AUTHOR_ROLES = ['secretary', 'vice_mayor'] as const;
 
 export default async function EditMemberPage({ params }: { params: Promise<{ id: string }> }) {
@@ -35,12 +34,12 @@ export default async function EditMemberPage({ params }: { params: Promise<{ id:
   const [committees, tenantId, signedDownloadUrl] = await Promise.all([
     getCommittees(),
     getCurrentTenantId(),
-    member.photoStoragePath
-      ? createAdminClient()
-          .storage.from(PORTRAIT_BUCKET)
-          .createSignedUrl(member.photoStoragePath, PORTRAIT_SIGNED_URL_TTL_SECONDS)
-          .then((res) => res.data?.signedUrl ?? null)
-      : Promise.resolve(null),
+    getCompressedImageUrl({
+      supabase: createAdminClient(),
+      bucket: 'members-portraits',
+      prefix: member.photoStoragePath,
+      size: pickSizeForSurface('inline'),
+    }),
   ]);
 
   const committeeOptions = committees.map((c) => ({ id: c.id, name: c.name }));

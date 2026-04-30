@@ -11,8 +11,9 @@ import { Badge } from '@/components/ui/badge';
 import { requireUser } from '@/lib/auth/require-user';
 import { db } from '@/lib/db';
 import { getCurrentTenantId } from '@/lib/db/queries/tenant';
-import { newsPosts, profiles } from '@/lib/db/schema';
+import { committees, newsPosts, profiles } from '@/lib/db/schema';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { getCompressedImageUrl, pickSizeForSurface } from '@/lib/upload/storage-url';
 import {
   NEWS_CATEGORY_LABELS,
   NEWS_STATUS_LABELS,
@@ -22,10 +23,6 @@ import {
 import { NewsActionsBar } from './_actions-bar';
 
 export const metadata = { title: 'News post' };
-
-const COVER_BUCKET = 'news-covers';
-const GALLERY_BUCKET = 'news-galleries';
-const SIGNED_URL_TTL_SECONDS = 60 * 60;
 
 const STATUS_BADGE_VARIANT = {
   draft: 'warn',
@@ -43,30 +40,36 @@ export default async function NewsPostDetailPage({ params }: { params: Promise<{
     .select({
       post: newsPosts,
       authorName: profiles.fullName,
+      committeeName: committees.name,
     })
     .from(newsPosts)
     .leftJoin(profiles, eq(profiles.id, newsPosts.authorId))
+    .leftJoin(committees, eq(committees.id, newsPosts.committeeId))
     .where(and(eq(newsPosts.tenantId, tenantId), eq(newsPosts.id, id), isNull(newsPosts.deletedAt)))
     .limit(1);
   if (!row) notFound();
 
   const post = row.post;
   const author = row.authorName ?? 'Office of the Secretary';
+  const committeeName = row.committeeName;
 
   const adminClient = createAdminClient();
   const [signedDownloadUrl, gallerySignedUrls] = await Promise.all([
-    post.coverStoragePath
-      ? adminClient.storage
-          .from(COVER_BUCKET)
-          .createSignedUrl(post.coverStoragePath, SIGNED_URL_TTL_SECONDS)
-          .then((res) => res.data?.signedUrl ?? null)
-      : Promise.resolve(null),
+    getCompressedImageUrl({
+      supabase: adminClient,
+      bucket: 'news-covers',
+      prefix: post.coverStoragePath,
+      size: pickSizeForSurface('inline'),
+    }),
     Promise.all(
       post.photos.map(async (p) => {
-        const { data } = await adminClient.storage
-          .from(GALLERY_BUCKET)
-          .createSignedUrl(p.storagePath, SIGNED_URL_TTL_SECONDS);
-        return { storagePath: p.storagePath, altText: p.altText, signedUrl: data?.signedUrl };
+        const url = await getCompressedImageUrl({
+          supabase: adminClient,
+          bucket: 'news-galleries',
+          prefix: p.storagePath,
+          size: pickSizeForSurface('inline'),
+        });
+        return { storagePath: p.storagePath, altText: p.altText, signedUrl: url ?? undefined };
       }),
     ),
   ]);
@@ -193,6 +196,12 @@ export default async function NewsPostDetailPage({ params }: { params: Promise<{
               <dd className="font-mono break-all">{post.slug}</dd>
               <dt className="text-ink-faint">Category</dt>
               <dd>{NEWS_CATEGORY_LABELS[post.category]}</dd>
+              {committeeName && (
+                <>
+                  <dt className="text-ink-faint">Committee</dt>
+                  <dd>{committeeName}</dd>
+                </>
+              )}
               <dt className="text-ink-faint">Created</dt>
               <dd className="font-mono">{format(post.createdAt, 'MMM d, yyyy · h:mm a')}</dd>
               {post.publishedAt && (
