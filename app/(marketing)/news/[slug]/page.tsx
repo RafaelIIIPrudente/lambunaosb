@@ -1,7 +1,6 @@
 import 'server-only';
 
 import type { Metadata } from 'next';
-import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ChevronRight } from 'lucide-react';
@@ -12,6 +11,7 @@ import remarkGfm from 'remark-gfm';
 import { FadeUp } from '@/components/motion/fade-up';
 import { Stagger, StaggerItem } from '@/components/motion/stagger';
 import { ImagePlaceholder } from '@/components/ui/image-placeholder';
+import { NewsCarousel } from '@/components/marketing/news-carousel';
 import { NewsSharePrint } from '@/components/marketing/news-share-print';
 import { env } from '@/env';
 import { safeBuildtimeQuery } from '@/lib/db/queries/_safe';
@@ -130,9 +130,22 @@ export default async function NewsPostPage({ params }: { params: Promise<{ slug:
       ),
     ),
   ]);
-  const galleryPhotos = post.photos
-    .map((photo, i) => ({ url: photoUrls[i], altText: photo.altText }))
-    .filter((p): p is { url: string; altText: string | null } => Boolean(p.url));
+  const carouselImages: { url: string; alt: string; isCover: boolean }[] = [
+    ...(coverUrl
+      ? [{ url: coverUrl, alt: `Cover image for ${post.title}`, isCover: true as const }]
+      : []),
+    ...post.photos
+      .map((photo, i) => {
+        const url = photoUrls[i];
+        if (!url) return null;
+        return {
+          url,
+          alt: photo.altText ?? `Photo ${i + 1} for ${post.title}`,
+          isCover: false as const,
+        };
+      })
+      .filter((entry): entry is { url: string; alt: string; isCover: false } => entry !== null),
+  ];
 
   const wordCount = post.bodyMdx.split(/\s+/).filter(Boolean).length;
   const readingMinutes = Math.max(1, Math.round(wordCount / 200));
@@ -238,20 +251,10 @@ export default async function NewsPostPage({ params }: { params: Promise<{ slug:
           </StaggerItem>
 
           <StaggerItem className="mt-10">
-            {coverUrl ? (
-              <div className="bg-paper-2 relative aspect-[16/9] w-full overflow-hidden rounded-md">
-                <Image
-                  src={coverUrl}
-                  alt={`Cover image for ${post.title}`}
-                  fill
-                  priority
-                  unoptimized
-                  sizes="(min-width: 768px) 860px, 100vw"
-                  className="object-cover"
-                />
-              </div>
+            {carouselImages.length > 0 ? (
+              <NewsCarousel images={carouselImages} title={post.title} />
             ) : (
-              <ImagePlaceholder ratio="16:9" label="Hero image" />
+              <ImagePlaceholder ratio="16:9" label="No photos available" />
             )}
           </StaggerItem>
         </Stagger>
@@ -274,32 +277,6 @@ export default async function NewsPostPage({ params }: { params: Promise<{ slug:
             {post.excerpt}
           </FadeUp>
         ) : null}
-
-        {galleryPhotos.length > 0 && (
-          <FadeUp as="section" aria-label="Photo gallery" className="mt-16">
-            <p className="text-rust mb-4 font-mono text-[11px] font-medium tracking-[0.22em] uppercase">
-              Gallery
-            </p>
-            <ul className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
-              {galleryPhotos.map((photo, i) => (
-                <li
-                  key={photo.url}
-                  className="bg-paper-2 border-ink/15 relative aspect-[4/3] overflow-hidden rounded-md border"
-                >
-                  <Image
-                    src={photo.url}
-                    alt={photo.altText ?? `Photo ${i + 1} for ${post.title}`}
-                    fill
-                    loading="lazy"
-                    unoptimized
-                    sizes="(min-width: 768px) 280px, 50vw"
-                    className="object-cover"
-                  />
-                </li>
-              ))}
-            </ul>
-          </FadeUp>
-        )}
       </article>
     </>
   );

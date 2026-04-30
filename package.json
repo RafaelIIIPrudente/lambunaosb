@@ -45,6 +45,7 @@
     "date-fns": "^4.1.0",
     "diff": "^9.0.0",
     "drizzle-orm": "^0.45.2",
+    "embla-carousel-react": "^8.6.0",
     "gray-matter": "^4.0.3",
     "lucide-react": "^1.11.0",
     "motion": "^12.38.0",
