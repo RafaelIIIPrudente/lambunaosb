@@ -1,10 +1,15 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { CheckCircle2, Home, Newspaper } from 'lucide-react';
 
-export const metadata = {
-  title: 'Query received',
-  description: 'Confirmation of citizen query submission.',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: 'Query received',
+    description: 'Confirmation of citizen query submission.',
+    robots: { index: false, follow: false },
+  };
+}
 
 export default async function ConfirmationPage({
   searchParams,
@@ -12,8 +17,11 @@ export default async function ConfirmationPage({
   searchParams: Promise<{ ref?: string; email?: string }>;
 }) {
   const { ref, email } = await searchParams;
-  const reference = ref ?? 'Q-2026-0142';
-  const replyTo = email ?? 'juan@example.com';
+  if (!ref || ref.trim().length === 0) {
+    redirect('/submit-query');
+  }
+
+  const replyTo = email && email.length > 0 && email !== 'silent@honeypot' ? email : null;
 
   return (
     <section className="mx-auto flex w-full max-w-[640px] flex-1 flex-col items-center px-4 py-16 text-center sm:px-8 md:py-24">
@@ -26,18 +34,20 @@ export default async function ConfirmationPage({
         Thank you. We received your message.
       </h1>
 
-      <p className="text-navy-primary font-display mt-5 max-w-md text-base leading-relaxed italic">
-        A confirmation has been sent to{' '}
-        <strong className="font-semibold not-italic">{replyTo}</strong>. The Office of the
-        Sangguniang typically replies within 1–3 business days.
-      </p>
+      {replyTo && (
+        <p className="text-navy-primary font-display mt-5 max-w-md text-base leading-relaxed italic">
+          A confirmation has been sent to{' '}
+          <strong className="font-semibold not-italic">{replyTo}</strong>. The Office of the
+          Sangguniang typically replies within 1–3 business days.
+        </p>
+      )}
 
       <div className="bg-paper-2 border-ink/15 mt-12 w-full rounded-md border p-6 text-left">
         <p className="text-rust font-mono text-[10px] font-medium tracking-[0.22em] uppercase">
           Your reference number
         </p>
         <p className="text-rust mt-2 font-mono text-3xl font-semibold tracking-wide tabular-nums select-all md:text-4xl">
-          {reference}
+          {ref}
         </p>
         <p className="text-ink-faint mt-3 text-sm italic">
           Save this — quote it if you need to follow up.

@@ -25,6 +25,8 @@ export const CITIZEN_QUERY_CATEGORY_LABELS: Record<
 
 export const MESSAGE_MAX = 1500;
 
+export const RETENTION_YEARS = 3;
+
 export const citizenQuerySchema = z.object({
   fullName: z.string().min(2, 'Please enter your full name.').max(120),
   email: z.email('Please enter a valid email address.'),

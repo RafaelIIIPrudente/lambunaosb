@@ -3,14 +3,23 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTransition } from 'react';
-import { useForm, useWatch } from 'react-hook-form';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
 import { ArrowRight, Mail, ShieldCheck, User } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Field, FieldInput, FieldTextarea } from '@/components/ui/field';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { TurnstileWidget } from '@/components/marketing/turnstile-widget';
+import {
   citizenQuerySchema,
+  CITIZEN_QUERY_CATEGORY_LABELS,
   MESSAGE_MAX,
   type CitizenQueryInput,
 } from '@/lib/validators/citizen-query';
@@ -49,7 +58,11 @@ export function SubmitQueryForm() {
         form.setError('root', { message: result.error });
         return;
       }
-      router.push(`/submit-query/confirmation?ref=${result.data.referenceNumber}`);
+      router.push(
+        `/submit-query/confirmation?ref=${encodeURIComponent(
+          result.data.referenceNumber,
+        )}&email=${encodeURIComponent(result.data.submitterEmail)}`,
+      );
     });
   }
 
@@ -99,6 +112,32 @@ export function SubmitQueryForm() {
       </div>
 
       <Field
+        label="Category"
+        required
+        className="mt-4"
+        error={form.formState.errors.category?.message}
+      >
+        <Controller
+          control={form.control}
+          name="category"
+          render={({ field }) => (
+            <Select value={field.value} onValueChange={field.onChange}>
+              <SelectTrigger className="border-ink/20 bg-paper text-ink h-10 w-full rounded-md px-3 text-sm">
+                <SelectValue placeholder="Select a category" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(CITIZEN_QUERY_CATEGORY_LABELS).map(([key, label]) => (
+                  <SelectItem key={key} value={key}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        />
+      </Field>
+
+      <Field
         label="Subject · 1 line"
         required
         className="mt-4"
@@ -140,19 +179,10 @@ export function SubmitQueryForm() {
         get rejected.
       </p>
 
-      {/* Turnstile placeholder */}
-      <div className="border-ink/30 mt-6 flex items-center justify-between rounded-md border border-dashed p-4">
-        <label className="flex items-center gap-2.5 text-sm">
-          <span className="border-ink/40 inline-flex size-4 items-center justify-center rounded-sm border">
-            <span className="bg-rust block size-2 rounded-[1px]" aria-hidden="true" />
-          </span>
-          <span className="text-ink">I&apos;m not a robot</span>
-        </label>
-        <span className="text-ink-faint font-mono text-[10px] leading-tight">
-          Cloudflare
-          <br />
-          Turnstile
-        </span>
+      <div className="mt-6">
+        <TurnstileWidget
+          onToken={(token) => form.setValue('turnstileToken', token, { shouldValidate: false })}
+        />
       </div>
 
       {/* Consent */}

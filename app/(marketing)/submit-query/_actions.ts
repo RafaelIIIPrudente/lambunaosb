@@ -12,9 +12,7 @@ import { citizenQueries } from '@/lib/db/schema';
 import { verifyTurnstile } from '@/lib/security/turnstile';
 import { writeAudit } from '@/lib/services/audit';
 import { ok, err, type Result } from '@/lib/types/result';
-import { citizenQuerySchema, type CitizenQueryInput } from '@/lib/validators/citizen-query';
-
-const RETENTION_YEARS = 3;
+import { citizenQuerySchema, RETENTION_YEARS } from '@/lib/validators/citizen-query';
 
 async function nextRefForYear(tenantId: string, year: number): Promise<string> {
   const [latest] = await db
@@ -29,7 +27,7 @@ async function nextRefForYear(tenantId: string, year: number): Promise<string> {
 
 export async function createCitizenQuery(
   raw: unknown,
-): Promise<Result<{ referenceNumber: string }>> {
+): Promise<Result<{ referenceNumber: string; submitterEmail: string }>> {
   const parsed = citizenQuerySchema.safeParse(raw);
   if (!parsed.success) {
     return err('Please correct the highlighted fields.', 'E_VALIDATION');
@@ -37,7 +35,7 @@ export async function createCitizenQuery(
 
   // Honeypot tripped → silent success per RA 10173 §17.1.
   if (parsed.data.website && parsed.data.website.length > 0) {
-    return ok({ referenceNumber: 'Q-0000-0000' });
+    return ok({ referenceNumber: 'Q-0000-0000', submitterEmail: 'silent@honeypot' });
   }
 
   try {
@@ -96,7 +94,7 @@ export async function createCitizenQuery(
 
     revalidatePath('/admin/queries');
     revalidatePath('/admin/dashboard');
-    return ok({ referenceNumber: row.ref });
+    return ok({ referenceNumber: row.ref, submitterEmail: parsed.data.email });
   } catch (e) {
     return err(
       e instanceof Error ? e.message : 'We could not record your query. Please try again later.',
@@ -104,5 +102,3 @@ export async function createCitizenQuery(
     );
   }
 }
-
-export type { CitizenQueryInput };
