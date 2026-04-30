@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/PC/.agents/skills/supabase/**)",
+      "Read(//c/Users/PC/.agents/skills/supabase-postgres-best-practices/**)"
+    ]
+  }
+}
