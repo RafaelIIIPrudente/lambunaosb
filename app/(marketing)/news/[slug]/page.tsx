@@ -1,13 +1,26 @@
+import 'server-only';
+
+import type { Metadata } from 'next';
+import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ChevronRight, Download, Share2 } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
+import { MDXRemote } from 'next-mdx-remote/rsc';
+import remarkGfm from 'remark-gfm';
 
 import { ImagePlaceholder } from '@/components/ui/image-placeholder';
+import { NewsSharePrint } from '@/components/marketing/news-share-print';
+import { env } from '@/env';
 import { safeBuildtimeQuery } from '@/lib/db/queries/_safe';
-import { getAllPublishedNewsSlugs, getNewsBySlug } from '@/lib/db/queries/news';
+import { getAllPublishedNewsSlugs, getNewsBySlug, type NewsCategory } from '@/lib/db/queries/news';
+import { getCurrentTenant } from '@/lib/db/queries/tenant';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { createSignedStorageUrl } from '@/lib/supabase/signed-urls';
 
-const CATEGORY_LABELS: Record<string, string> = {
+const SITE_URL = env.NEXT_PUBLIC_SITE_URL;
+
+const CATEGORY_LABELS: Record<NewsCategory, string> = {
   health: 'Health',
   notice: 'Notice',
   hearing: 'Hearing',
@@ -16,8 +29,89 @@ const CATEGORY_LABELS: Record<string, string> = {
   press_release: 'Press release',
 };
 
+const DESCRIPTION_MAX = 140;
+
 export async function generateStaticParams() {
   return safeBuildtimeQuery(() => getAllPublishedNewsSlugs(), []);
+}
+
+function summarizeBody(md: string): string {
+  const stripped = md
+    .replace(/```[\s\S]*?```/g, '')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/!\[[^\]]*\]\([^)]+\)/g, '')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/[#>*_~]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (stripped.length === 0) return '';
+  if (stripped.length <= DESCRIPTION_MAX) return stripped;
+  return `${stripped.slice(0, DESCRIPTION_MAX - 1).trimEnd()}…`;
+}
+
+function computeInitials(author: string): string {
+  return author
+    .split(/\s+/)
+    .map((part) => part.charAt(0))
+    .filter(Boolean)
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const [post, tenant] = await Promise.all([getNewsBySlug(slug), getCurrentTenant()]);
+  if (!post) {
+    return {
+      metadataBase: new URL(SITE_URL),
+      title: `Post not found · ${tenant.displayName}`,
+      robots: { index: false, follow: false },
+    };
+  }
+
+  const description = post.excerpt?.trim() || summarizeBody(post.bodyMdx) || tenant.displayName;
+  const title = `${post.title} · ${tenant.displayName}`;
+
+  const supabase = createAdminClient();
+  const coverUrl = await createSignedStorageUrl(supabase, 'news-covers', post.coverStoragePath);
+
+  const ogImage = coverUrl
+    ? { url: coverUrl, width: 1200, height: 630, alt: `Cover image for ${post.title}` }
+    : {
+        url: '/seal/lamb-logo.png',
+        width: 1024,
+        height: 1024,
+        alt: `Official seal of the Municipality of Lambunao, Province of ${tenant.province}`,
+      };
+
+  return {
+    metadataBase: new URL(SITE_URL),
+    title,
+    description,
+    alternates: { canonical: `/news/${slug}` },
+    openGraph: {
+      type: 'article',
+      locale: 'en_PH',
+      url: `/news/${slug}`,
+      siteName: tenant.displayName,
+      title,
+      description,
+      publishedTime: post.publishedAt.toISOString(),
+      authors: [post.author],
+      images: [ogImage],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [ogImage.url],
+    },
+  };
 }
 
 export default async function NewsPostPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -25,96 +119,135 @@ export default async function NewsPostPage({ params }: { params: Promise<{ slug:
   const post = await getNewsBySlug(slug);
   if (!post) notFound();
 
+  const supabase = createAdminClient();
+  const coverUrl = await createSignedStorageUrl(supabase, 'news-covers', post.coverStoragePath);
+
+  const wordCount = post.bodyMdx.split(/\s+/).filter(Boolean).length;
+  const readingMinutes = Math.max(1, Math.round(wordCount / 200));
+
+  const initials = computeInitials(post.author);
+
+  const description = post.excerpt?.trim() || summarizeBody(post.bodyMdx) || post.title;
+
+  const articleJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'NewsArticle',
+    headline: post.title,
+    description,
+    image: coverUrl ?? `${SITE_URL}/seal/lamb-logo.png`,
+    author: { '@type': 'Person', name: post.author },
+    publisher: { '@id': `${SITE_URL}#organization` },
+    datePublished: post.publishedAt.toISOString(),
+    dateModified: post.publishedAt.toISOString(),
+    articleSection: CATEGORY_LABELS[post.category],
+    url: `${SITE_URL}/news/${slug}`,
+    inLanguage: 'en',
+  };
+
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: SITE_URL },
+      { '@type': 'ListItem', position: 2, name: 'News', item: `${SITE_URL}/news` },
+      { '@type': 'ListItem', position: 3, name: CATEGORY_LABELS[post.category] },
+    ],
+  };
+
+  const hasBody = post.bodyMdx.trim().length > 0;
+
   return (
-    <article className="mx-auto w-full max-w-[860px] px-4 py-12 sm:px-8 md:py-16">
-      {/* Breadcrumb */}
-      <nav aria-label="Breadcrumb" className="mb-8">
-        <ol className="text-ink-faint flex items-center gap-2 font-mono text-xs">
-          <li>
-            <Link href="/" className="hover:text-rust">
-              Home
-            </Link>
-          </li>
-          <li aria-hidden="true">
-            <ChevronRight className="size-3" />
-          </li>
-          <li>
-            <Link href="/news" className="hover:text-rust">
-              News
-            </Link>
-          </li>
-          <li aria-hidden="true">
-            <ChevronRight className="size-3" />
-          </li>
-          <li className="text-rust font-semibold tracking-[0.12em] uppercase" aria-current="page">
-            {CATEGORY_LABELS[post.category]}
-          </li>
-        </ol>
-      </nav>
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
+      <article className="mx-auto w-full max-w-[860px] px-4 py-12 sm:px-8 md:py-16">
+        <nav aria-label="Breadcrumb" className="mb-8">
+          <ol className="text-ink-faint flex items-center gap-2 font-mono text-xs">
+            <li>
+              <Link href="/" className="hover:text-rust">
+                Home
+              </Link>
+            </li>
+            <li aria-hidden="true">
+              <ChevronRight className="size-3" />
+            </li>
+            <li>
+              <Link href="/news" className="hover:text-rust">
+                News
+              </Link>
+            </li>
+            <li aria-hidden="true">
+              <ChevronRight className="size-3" />
+            </li>
+            <li className="text-rust font-semibold tracking-[0.12em] uppercase" aria-current="page">
+              {CATEGORY_LABELS[post.category]}
+            </li>
+          </ol>
+        </nav>
 
-      {/* Title */}
-      <h1 className="text-ink font-display text-4xl leading-[1.1] font-bold tracking-tight md:text-5xl">
-        {post.title}
-      </h1>
+        <h1 className="text-ink font-display text-4xl leading-[1.1] font-bold tracking-tight md:text-5xl">
+          {post.title}
+        </h1>
 
-      {/* Meta row */}
-      <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex items-start gap-3">
-          <span
-            aria-hidden="true"
-            className="bg-paper-3 border-ink/20 mt-1 inline-flex size-9 shrink-0 items-center justify-center rounded-full border"
-          />
-          <div className="flex flex-col leading-tight">
-            <span className="font-script text-ink text-base">{post.author}</span>
-            <span className="text-ink-faint mt-0.5 font-mono text-[11px]">
-              Posted {format(new Date(post.publishedAt), 'MMM d, yyyy')} · 5 min read
-            </span>
+        <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex items-start gap-3">
+            {initials && (
+              <span
+                aria-hidden="true"
+                className="bg-paper-2 border-ink/20 text-ink font-script mt-1 inline-flex size-9 shrink-0 items-center justify-center rounded-full border text-sm"
+              >
+                {initials}
+              </span>
+            )}
+            <div className="flex flex-col leading-tight">
+              <span className="font-script text-ink text-base">{post.author}</span>
+              <span className="text-ink-faint mt-0.5 font-mono text-[11px]">
+                Posted {format(new Date(post.publishedAt), 'MMM d, yyyy')} · {readingMinutes} min
+                read
+              </span>
+            </div>
           </div>
+
+          <NewsSharePrint title={post.title} url={`${SITE_URL}/news/${slug}`} />
         </div>
 
-        <div className="flex gap-2">
-          <button
-            type="button"
-            className="border-ink/30 text-ink hover:bg-paper-2 font-script rounded-pill inline-flex h-9 items-center gap-1.5 border border-dashed px-3.5 text-sm transition-colors"
-          >
-            <Share2 className="size-3.5" aria-hidden="true" />
-            Share
-          </button>
-          <button
-            type="button"
-            className="border-ink/30 text-ink hover:bg-paper-2 font-script rounded-pill inline-flex h-9 items-center gap-1.5 border border-dashed px-3.5 text-sm transition-colors"
-          >
-            <Download className="size-3.5" aria-hidden="true" />
-            Print
-          </button>
+        <div className="mt-10">
+          {coverUrl ? (
+            <div className="bg-paper-2 relative aspect-[16/9] w-full overflow-hidden rounded-md">
+              <Image
+                src={coverUrl}
+                alt={`Cover image for ${post.title}`}
+                fill
+                priority
+                unoptimized
+                sizes="(min-width: 768px) 860px, 100vw"
+                className="object-cover"
+              />
+            </div>
+          ) : (
+            <ImagePlaceholder ratio="16:9" label="Hero image" />
+          )}
         </div>
-      </div>
 
-      {/* Hero image */}
-      <div className="mt-10">
-        <ImagePlaceholder ratio="16:9" label="Hero image" />
-      </div>
-
-      {/* Body */}
-      <div className="text-navy-primary font-display mt-10 flex flex-col gap-5 text-lg leading-relaxed italic">
-        <p>{post.excerpt}</p>
-        <p>
-          Vaccines available include tetanus toxoid (adults), anti-rabies (post-exposure), and
-          Hepatitis B (children under 12). Health workers will also accept referrals from the
-          previous schedule.
-        </p>
-        <p>
-          For more information, contact the Office of the Sangguniang at{' '}
-          <strong className="font-semibold not-italic">(033) 333-1234</strong> or send a query via
-          this site. Walk-ins are welcome between 8:00 AM and 12:00 NN.
-        </p>
-      </div>
-
-      {/* Sentence-fragment placeholder bars (matches the mockup's faint dividers) */}
-      <div className="mt-12 space-y-2">
-        <div className="bg-paper-3 h-2 w-full rounded-full" />
-        <div className="bg-paper-3 h-2 w-2/3 rounded-full" />
-      </div>
-    </article>
+        {hasBody ? (
+          <div className="text-navy-primary font-display prose-news mt-10 flex flex-col gap-5 text-lg leading-relaxed italic">
+            <MDXRemote
+              source={post.bodyMdx}
+              options={{ mdxOptions: { remarkPlugins: [remarkGfm] } }}
+            />
+          </div>
+        ) : post.excerpt ? (
+          <p className="text-navy-primary font-display mt-10 text-lg leading-relaxed italic">
+            {post.excerpt}
+          </p>
+        ) : null}
+      </article>
+    </>
   );
 }

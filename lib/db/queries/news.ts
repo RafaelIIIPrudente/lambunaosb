@@ -33,6 +33,7 @@ export type GetPublishedNewsOptions = {
   category?: NewsCategory;
 };
 
+/** Returns published+public news posts. Default cap of 24; pass options.limit to override. */
 export async function getPublishedNews(
   options: GetPublishedNewsOptions = {},
 ): Promise<NewsCardData[]> {
@@ -47,7 +48,9 @@ export async function getPublishedNews(
     conditions.push(eq(newsPosts.category, options.category));
   }
 
-  const baseQuery = db
+  const effectiveLimit = options.limit ?? 24;
+
+  const rows = await db
     .select({
       id: newsPosts.id,
       slug: newsPosts.slug,
@@ -61,9 +64,8 @@ export async function getPublishedNews(
     .from(newsPosts)
     .leftJoin(profiles, eq(profiles.id, newsPosts.authorId))
     .where(and(...conditions))
-    .orderBy(desc(newsPosts.publishedAt));
-
-  const rows = await (options.limit ? baseQuery.limit(options.limit) : baseQuery);
+    .orderBy(desc(newsPosts.publishedAt))
+    .limit(effectiveLimit);
 
   return rows.flatMap((row) =>
     row.publishedAt
