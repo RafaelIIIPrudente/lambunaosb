@@ -122,7 +122,17 @@ export default async function NewsPostPage({ params }: { params: Promise<{ slug:
   if (!post) notFound();
 
   const supabase = createAdminClient();
-  const coverUrl = await createSignedStorageUrl(supabase, 'news-covers', post.coverStoragePath);
+  const [coverUrl, photoUrls] = await Promise.all([
+    createSignedStorageUrl(supabase, 'news-covers', post.coverStoragePath),
+    Promise.all(
+      post.photos.map((photo) =>
+        createSignedStorageUrl(supabase, 'news-galleries', photo.storagePath),
+      ),
+    ),
+  ]);
+  const galleryPhotos = post.photos
+    .map((photo, i) => ({ url: photoUrls[i], altText: photo.altText }))
+    .filter((p): p is { url: string; altText: string | null } => Boolean(p.url));
 
   const wordCount = post.bodyMdx.split(/\s+/).filter(Boolean).length;
   const readingMinutes = Math.max(1, Math.round(wordCount / 200));
@@ -264,6 +274,32 @@ export default async function NewsPostPage({ params }: { params: Promise<{ slug:
             {post.excerpt}
           </FadeUp>
         ) : null}
+
+        {galleryPhotos.length > 0 && (
+          <FadeUp as="section" aria-label="Photo gallery" className="mt-16">
+            <p className="text-rust mb-4 font-mono text-[11px] font-medium tracking-[0.22em] uppercase">
+              Gallery
+            </p>
+            <ul className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+              {galleryPhotos.map((photo, i) => (
+                <li
+                  key={photo.url}
+                  className="bg-paper-2 border-ink/15 relative aspect-[4/3] overflow-hidden rounded-md border"
+                >
+                  <Image
+                    src={photo.url}
+                    alt={photo.altText ?? `Photo ${i + 1} for ${post.title}`}
+                    fill
+                    loading="lazy"
+                    unoptimized
+                    sizes="(min-width: 768px) 280px, 50vw"
+                    className="object-cover"
+                  />
+                </li>
+              ))}
+            </ul>
+          </FadeUp>
+        )}
       </article>
     </>
   );

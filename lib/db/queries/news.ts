@@ -3,7 +3,7 @@ import 'server-only';
 import { and, desc, eq, isNull } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
-import { newsPosts, type NewsPost, profiles } from '@/lib/db/schema';
+import { newsPosts, type NewsPost, type NewsPostPhoto, profiles } from '@/lib/db/schema';
 
 import { getCurrentTenantId } from './tenant';
 
@@ -26,6 +26,7 @@ export type NewsPostDetail = NewsCardData & {
   bodyMdx: string;
   visibility: NewsVisibility;
   status: NewsStatus;
+  photos: NewsPostPhoto[];
 };
 
 export type GetPublishedNewsOptions = {
@@ -103,6 +104,7 @@ export async function getNewsBySlug(slug: string): Promise<NewsPostDetail | null
       visibility: newsPosts.visibility,
       publishedAt: newsPosts.publishedAt,
       coverStoragePath: newsPosts.coverStoragePath,
+      photos: newsPosts.photos,
       authorName: profiles.fullName,
     })
     .from(newsPosts)
@@ -131,6 +133,7 @@ export async function getNewsBySlug(slug: string): Promise<NewsPostDetail | null
     visibility: row.visibility,
     publishedAt: row.publishedAt,
     coverStoragePath: row.coverStoragePath,
+    photos: row.photos,
     author: row.authorName ?? 'Office of the Secretary',
   };
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Download, Share2 } from 'lucide-react';
+import { Share2 } from 'lucide-react';
 
 type Props = {
   title: string;
@@ -32,19 +32,11 @@ export function NewsSharePrint({ title, url }: Props) {
     }
   }
 
-  function handlePrint() {
-    window.print();
-  }
-
   return (
     <div className="flex items-center gap-2">
       <button type="button" onClick={handleShare} className={BUTTON_CLASS}>
         <Share2 className="size-3.5" aria-hidden="true" />
         Share
-      </button>
-      <button type="button" onClick={handlePrint} className={BUTTON_CLASS}>
-        <Download className="size-3.5" aria-hidden="true" />
-        Print
       </button>
       {copied && (
         <span aria-live="polite" className="text-ink-soft font-mono text-xs">
