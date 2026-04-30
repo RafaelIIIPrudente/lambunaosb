@@ -23,7 +23,14 @@ import { PdfSection } from './_pdf-section';
 
 const PDF_BUCKET = 'resolutions-pdfs';
 const PDF_SIGNED_URL_TTL_SECONDS = 60 * 60;
-const AUTHOR_ROLES = ['secretary', 'mayor', 'vice_mayor', 'sb_member'] as const;
+const AUTHOR_ROLES = [
+  'secretary',
+  'mayor',
+  'vice_mayor',
+  'sb_member',
+  'skmf_president',
+  'liga_president',
+] as const;
 
 export const metadata = { title: 'Resolution detail' };
 

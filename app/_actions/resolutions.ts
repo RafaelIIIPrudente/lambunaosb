@@ -23,13 +23,33 @@ import {
   withdrawResolutionSchema,
 } from '@/lib/validators/resolution';
 
-const AUTHOR_ROLES = ['secretary', 'mayor', 'vice_mayor', 'sb_member'] as const;
+const AUTHOR_ROLES = [
+  'secretary',
+  'mayor',
+  'vice_mayor',
+  'sb_member',
+  'skmf_president',
+  'liga_president',
+] as const;
 const PUBLISH_ROLES = ['secretary', 'mayor'] as const;
 const WITHDRAW_ROLES = ['secretary', 'mayor', 'vice_mayor'] as const;
 const APPROVE_ROLES = ['secretary', 'mayor', 'vice_mayor'] as const;
-const FILE_ROLES = ['secretary', 'mayor', 'vice_mayor', 'sb_member'] as const;
+const FILE_ROLES = [
+  'secretary',
+  'mayor',
+  'vice_mayor',
+  'sb_member',
+  'skmf_president',
+  'liga_president',
+] as const;
 
-type Role = 'secretary' | 'mayor' | 'vice_mayor' | 'sb_member';
+type Role =
+  | 'secretary'
+  | 'mayor'
+  | 'vice_mayor'
+  | 'sb_member'
+  | 'skmf_president'
+  | 'liga_president';
 
 function hasRole(role: string, allowed: readonly Role[]): boolean {
   return (allowed as readonly string[]).includes(role);

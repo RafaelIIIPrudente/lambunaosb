@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { requireUser } from '@/lib/auth/require-user';
 import { getAuditEntryById } from '@/lib/db/queries/audit';
+import { SB_MEMBER_TIER_ROLES } from '@/lib/validators/user';
 import {
   AUDIT_CATEGORY_LABELS,
   type AuditCategoryValue,
@@ -55,7 +56,7 @@ export default async function AuditEntryDetailPage({
 }) {
   const { id } = await params;
   const ctx = await requireUser();
-  if (ctx.profile.role === 'sb_member') {
+  if ((SB_MEMBER_TIER_ROLES as readonly string[]).includes(ctx.profile.role)) {
     redirect('/admin/dashboard');
   }
 

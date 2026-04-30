@@ -17,7 +17,9 @@ export async function getDashboardData(): Promise<DashboardData> {
   const [upcoming, queryCounts, recentResolutions, recentActivity] = await Promise.all([
     getUpcomingMeetings(1),
     getCitizenQueryStatusCounts(),
-    getResolutionsList({ status: 'approved' }).then((rows) => rows.slice(0, 1)),
+    // Most recent resolution regardless of status — the dashboard card renders
+    // friendly status text (Filed / Published / Status: draft / …).
+    getResolutionsList().then((rows) => rows.slice(0, 1)),
     getRecentActivity(4),
   ]);
 

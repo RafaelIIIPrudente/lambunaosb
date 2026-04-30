@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardEyebrow, CardFooter, CardTitle } from '@/components/ui/card';
 import { requireUser } from '@/lib/auth/require-user';
 import { getAlertCount, getAuditActorOptions, getAuditEntries } from '@/lib/db/queries/audit';
+import { SB_MEMBER_TIER_ROLES } from '@/lib/validators/user';
 import { cn } from '@/lib/utils';
 import {
   AUDIT_CATEGORIES,
@@ -83,7 +84,7 @@ export default async function AuditPage({
   // SELECT, but per product policy only Secretary/Vice Mayor/Mayor should
   // be browsing the audit log from this UI. Tracked follow-up: tighten RLS
   // to match.
-  if (ctx.profile.role === 'sb_member') {
+  if ((SB_MEMBER_TIER_ROLES as readonly string[]).includes(ctx.profile.role)) {
     redirect('/admin/dashboard');
   }
 

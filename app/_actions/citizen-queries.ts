@@ -20,7 +20,14 @@ import {
   updateCitizenQueryTagsSchema,
 } from '@/lib/validators/citizen-query-admin';
 
-const ADMIN_ROLES = ['secretary', 'vice_mayor', 'mayor', 'sb_member'] as const;
+const ADMIN_ROLES = [
+  'secretary',
+  'vice_mayor',
+  'mayor',
+  'sb_member',
+  'skmf_president',
+  'liga_president',
+] as const;
 const ARCHIVE_ROLES = ['secretary'] as const;
 
 type AdminRole = (typeof ADMIN_ROLES)[number];

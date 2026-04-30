@@ -20,7 +20,13 @@ import {
 } from '@/lib/validators/transcript';
 
 const APPROVE_ROLES = ['secretary', 'vice_mayor'] as const;
-const EDIT_ROLES = ['secretary', 'vice_mayor', 'sb_member'] as const;
+const EDIT_ROLES = [
+  'secretary',
+  'vice_mayor',
+  'sb_member',
+  'skmf_president',
+  'liga_president',
+] as const;
 const RECORDER_ROLES = ['secretary', 'mayor', 'vice_mayor'] as const;
 
 export async function updateTranscriptSegment(raw: unknown): Promise<Result<void>> {

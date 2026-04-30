@@ -8,6 +8,8 @@ export const userRole = pgEnum('user_role', [
   'mayor',
   'vice_mayor',
   'sb_member',
+  'skmf_president',
+  'liga_president',
   'other_lgu',
 ]);
 

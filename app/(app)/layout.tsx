@@ -9,6 +9,7 @@ import { AdminStatusBar } from '@/components/app/admin-status-bar';
 import { requireUser } from '@/lib/auth/require-user';
 import { getAlertCount } from '@/lib/db/queries/audit';
 import { getAssignmentCounts } from '@/lib/db/queries/citizen-queries';
+import { SB_MEMBER_TIER_ROLES } from '@/lib/validators/user';
 
 const EMPTY_NOTIFICATION_COUNTS: NotificationCounts = {
   auditAlerts: 0,
@@ -20,7 +21,7 @@ const EMPTY_NOTIFICATION_COUNTS: NotificationCounts = {
 async function getNotificationCounts(userId: string, role: string): Promise<NotificationCounts> {
   if (role === 'other_lgu') return EMPTY_NOTIFICATION_COUNTS;
 
-  if (role === 'sb_member') {
+  if ((SB_MEMBER_TIER_ROLES as readonly string[]).includes(role)) {
     const assignments = await getAssignmentCounts(userId);
     return {
       auditAlerts: 0,

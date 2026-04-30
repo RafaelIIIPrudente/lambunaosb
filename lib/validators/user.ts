@@ -1,14 +1,30 @@
 import { z } from 'zod';
 
-export const USER_ROLES = ['secretary', 'mayor', 'vice_mayor', 'sb_member', 'other_lgu'] as const;
+export const USER_ROLES = [
+  'secretary',
+  'mayor',
+  'vice_mayor',
+  'sb_member',
+  'skmf_president',
+  'liga_president',
+  'other_lgu',
+] as const;
 
 export type UserRole = (typeof USER_ROLES)[number];
+
+// Roles that share the `sb_member` permission tier — elected SB members and
+// the two ex-officio presidents (SKMF, Liga). Use this when broadening a
+// comparison that previously read `role === 'sb_member'`.
+export const SB_MEMBER_TIER_ROLES = ['sb_member', 'skmf_president', 'liga_president'] as const;
+export type SbMemberTierRole = (typeof SB_MEMBER_TIER_ROLES)[number];
 
 export const USER_ROLE_LABELS: Record<UserRole, string> = {
   secretary: 'Secretary',
   mayor: 'Mayor',
   vice_mayor: 'Vice Mayor',
   sb_member: 'SB Member',
+  skmf_president: 'SKMF President',
+  liga_president: 'Liga President',
   other_lgu: 'Other LGU',
 };
 
@@ -17,6 +33,10 @@ export const USER_ROLE_DESCRIPTIONS: Record<UserRole, string> = {
   mayor: 'Sign resolutions · final publish.',
   vice_mayor: 'Approve transcripts · publish minutes.',
   sb_member: 'Read everything · edit own profile · co-sponsor.',
+  skmf_president:
+    'Read everything · edit own profile · co-sponsor as ex-officio youth representative.',
+  liga_president:
+    'Read everything · edit own profile · co-sponsor as ex-officio barangay representative.',
   other_lgu: 'Read-only access for inter-office coordination.',
 };
 

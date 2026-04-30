@@ -43,6 +43,8 @@ const ROLE_BADGE_VARIANT: Record<UserRole, 'success' | 'outline' | 'warn' | 'des
     mayor: 'warn',
     vice_mayor: 'warn',
     sb_member: 'outline',
+    skmf_president: 'outline',
+    liga_president: 'outline',
     other_lgu: 'outline',
   };
 

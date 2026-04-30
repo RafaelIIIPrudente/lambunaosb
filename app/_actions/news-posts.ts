@@ -21,10 +21,23 @@ import {
   updateNewsPostSchema,
 } from '@/lib/validators/news-post';
 
-const AUTHOR_ROLES = ['secretary', 'vice_mayor', 'mayor', 'sb_member'] as const;
+const AUTHOR_ROLES = [
+  'secretary',
+  'vice_mayor',
+  'mayor',
+  'sb_member',
+  'skmf_president',
+  'liga_president',
+] as const;
 const PUBLISH_ROLES = ['secretary', 'vice_mayor', 'mayor'] as const;
 
-type Role = 'secretary' | 'mayor' | 'vice_mayor' | 'sb_member';
+type Role =
+  | 'secretary'
+  | 'mayor'
+  | 'vice_mayor'
+  | 'sb_member'
+  | 'skmf_president'
+  | 'liga_president';
 
 function hasAuthorRole(role: string): boolean {
   return (AUTHOR_ROLES as readonly string[]).includes(role);

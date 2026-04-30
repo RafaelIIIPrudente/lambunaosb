@@ -19,6 +19,8 @@ const ADMIN_ROLES = [
   'vice_mayor',
   'mayor',
   'sb_member',
+  'skmf_president',
+  'liga_president',
 ] as const satisfies readonly Profile['role'][];
 
 export type CitizenQueryStatus = CitizenQuery['status'];
