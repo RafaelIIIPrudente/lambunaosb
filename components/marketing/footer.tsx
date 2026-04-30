@@ -1,6 +1,9 @@
 import Image from 'next/image';
 import Link from 'next/link';
 
+import { FacebookIcon } from '@/components/icons/facebook';
+import { SOCIAL_LINKS } from '@/lib/constants/social';
+
 const TENANT = {
   displayName: 'Sangguniang Bayan ng Lambunao',
   office: 'SB Office, 2/F Municipal Hall, Plaza Rizal, Brgy. Poblacion, Lambunao, Iloilo 5018',
@@ -57,6 +60,17 @@ export function PublicFooter() {
             <span className="text-ink-faint">Data Privacy Officer:</span>{' '}
             <a href={`mailto:${TENANT.dpoEmail}`} className="text-navy-primary hover:underline">
               {TENANT.dpoEmail}
+            </a>
+          </p>
+          <p className="mt-3 flex items-center gap-1.5 text-xs">
+            <FacebookIcon className="text-ink-faint size-3.5" aria-hidden="true" />
+            <a
+              href={SOCIAL_LINKS.facebook}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="text-navy-primary hover:underline"
+            >
+              facebook.com/lambunaoipadayaw
             </a>
           </p>
         </div>

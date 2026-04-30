@@ -1,11 +1,14 @@
 import 'server-only';
 
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import { Mail, Phone } from 'lucide-react';
 import { MDXRemote } from 'next-mdx-remote/rsc';
 import remarkGfm from 'remark-gfm';
 
+import { FacebookIcon } from '@/components/icons/facebook';
 import { env } from '@/env';
+import { SOCIAL_LINKS } from '@/lib/constants/social';
 import { getActiveMembers } from '@/lib/db/queries/members';
 import { getCurrentTenant } from '@/lib/db/queries/tenant';
 import { RETENTION_YEARS } from '@/lib/validators/citizen-query';
@@ -111,6 +114,22 @@ export default async function AboutPage() {
           </h1>
         </header>
 
+        <figure className="mb-12">
+          <div className="bg-paper-2 border-ink/15 relative aspect-[16/9] w-full overflow-hidden rounded-md border">
+            <Image
+              src="/about/oath-taking-2025.png"
+              alt="Oath-taking and turnover ceremony of newly elected officials, Municipality of Lambunao."
+              fill
+              priority
+              sizes="(min-width: 1100px) 1100px, 100vw"
+              className="object-cover"
+            />
+          </div>
+          <figcaption className="text-ink-faint mt-3 font-mono text-xs italic">
+            Oath-taking and turnover ceremony of newly elected officials · Municipality of Lambunao.
+          </figcaption>
+        </figure>
+
         <div className="grid gap-12 md:grid-cols-[1.4fr_1fr]">
           <div className="text-navy-primary font-display flex flex-col gap-5 text-lg leading-relaxed italic">
             <p>
@@ -153,6 +172,17 @@ export default async function AboutPage() {
                     className="text-navy-primary font-display italic hover:underline"
                   >
                     {tenant.contactEmail}
+                  </a>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <FacebookIcon className="size-3.5 shrink-0" aria-hidden="true" />
+                  <a
+                    href={SOCIAL_LINKS.facebook}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="text-navy-primary font-display italic hover:underline"
+                  >
+                    facebook.com/lambunaoipadayaw
                   </a>
                 </li>
               </ul>

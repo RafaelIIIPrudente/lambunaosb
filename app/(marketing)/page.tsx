@@ -6,9 +6,11 @@ import Link from 'next/link';
 import { ArrowRight, CalendarClock, MapPin, Newspaper } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 
+import { FacebookIcon } from '@/components/icons/facebook';
 import { Button } from '@/components/ui/button';
 import { ImagePlaceholder } from '@/components/ui/image-placeholder';
 import { env } from '@/env';
+import { SOCIAL_LINKS } from '@/lib/constants/social';
 import { getActiveMembers } from '@/lib/db/queries/members';
 import { getUpcomingMeetings } from '@/lib/db/queries/meetings';
 import { getFeaturedNews } from '@/lib/db/queries/news';
@@ -201,6 +203,16 @@ export default async function LandingPage() {
                 </Link>
               </Button>
             </div>
+
+            <a
+              href={SOCIAL_LINKS.facebook}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="text-ink-soft hover:text-rust mt-6 inline-flex items-center gap-1.5 font-mono text-xs tracking-wide transition-colors"
+            >
+              <FacebookIcon className="size-3.5" aria-hidden="true" />
+              Follow us on Facebook · @lambunaoipadayaw
+            </a>
           </div>
 
           <aside className="flex flex-col items-center justify-center gap-3 lg:items-end">
