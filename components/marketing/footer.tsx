@@ -17,15 +17,16 @@ export function PublicFooter() {
         <div className="flex items-start gap-4">
           <Image
             src="/seal/lambunao-seal.png"
-            width={56}
-            height={56}
-            alt="Official seal of Lambunao Municipality, Province of Iloilo"
+            width={60}
+            height={60}
+            alt={`Official seal of ${TENANT.displayName}, Province of Iloilo`}
+            className="size-12 shrink-0 rounded-full"
           />
           <div className="text-sm leading-relaxed">
-            <p className="text-navy-primary font-serif text-base font-semibold">
+            <p className="text-navy-primary font-display text-lg leading-tight font-semibold">
               {TENANT.displayName}
             </p>
-            <p className="text-ink-faint mt-1 text-xs tracking-wide uppercase">
+            <p className="text-ink-faint mt-1.5 font-mono text-[11px] tracking-[0.18em] uppercase">
               Province of Iloilo · Established 1948
             </p>
           </div>

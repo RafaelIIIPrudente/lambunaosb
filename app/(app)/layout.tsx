@@ -4,8 +4,45 @@ import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { AdminSidebar } from '@/components/app/admin-sidebar';
 import { AdminTopbar } from '@/components/app/admin-topbar';
+import type { NotificationCounts } from '@/components/app/notification-bell';
 import { AdminStatusBar } from '@/components/app/admin-status-bar';
 import { requireUser } from '@/lib/auth/require-user';
+import { getAlertCount } from '@/lib/db/queries/audit';
+import { getAssignmentCounts } from '@/lib/db/queries/citizen-queries';
+
+const EMPTY_NOTIFICATION_COUNTS: NotificationCounts = {
+  auditAlerts: 0,
+  assignedToMe: 0,
+  pendingQueries: 0,
+  total: 0,
+};
+
+async function getNotificationCounts(userId: string, role: string): Promise<NotificationCounts> {
+  if (role === 'other_lgu') return EMPTY_NOTIFICATION_COUNTS;
+
+  if (role === 'sb_member') {
+    const assignments = await getAssignmentCounts(userId);
+    return {
+      auditAlerts: 0,
+      assignedToMe: assignments.mine,
+      pendingQueries: 0,
+      total: assignments.mine,
+    };
+  }
+
+  // secretary / mayor / vice_mayor
+  const [assignments, auditAlerts] = await Promise.all([
+    getAssignmentCounts(userId),
+    getAlertCount(),
+  ]);
+  const total = assignments.unassigned + assignments.mine + auditAlerts;
+  return {
+    auditAlerts,
+    assignedToMe: assignments.mine,
+    pendingQueries: assignments.unassigned,
+    total,
+  };
+}
 
 /**
  * Admin route-group layout — operational chrome.
@@ -13,7 +50,8 @@ import { requireUser } from '@/lib/auth/require-user';
  * Brief §1.2 + §4.15.
  */
 export default async function AdminLayout({ children }: { children: ReactNode }) {
-  await requireUser();
+  const { profile } = await requireUser();
+  const notificationCounts = await getNotificationCounts(profile.id, profile.role);
 
   return (
     <div data-surface="admin" className="bg-paper text-ink min-h-screen">
@@ -25,9 +63,9 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       </a>
       <TooltipProvider delayDuration={400}>
         <SidebarProvider>
-          <AdminSidebar />
+          <AdminSidebar fullName={profile.fullName} role={profile.role} />
           <SidebarInset className="bg-paper flex min-h-screen flex-col">
-            <AdminTopbar />
+            <AdminTopbar notificationCounts={notificationCounts} role={profile.role} />
             <main id="admin-main" className="flex-1 px-6 py-6">
               {children}
             </main>

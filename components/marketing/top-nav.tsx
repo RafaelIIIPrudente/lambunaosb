@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Globe, Menu } from 'lucide-react';
@@ -117,12 +118,14 @@ export function PublicTopNav() {
           className="group/brand flex items-center gap-3"
           aria-label="Sangguniang Bayan ng Lambunao — Home"
         >
-          <span
-            aria-hidden="true"
-            className="border-ink/40 bg-paper text-ink inline-flex size-9 shrink-0 items-center justify-center rounded-full border font-mono text-[11px] font-semibold tracking-wide"
-          >
-            SB
-          </span>
+          <Image
+            src="/seal/lambunao-seal.png"
+            width={36}
+            height={36}
+            alt=""
+            priority
+            className="size-9 shrink-0 rounded-full"
+          />
           <div className="hidden flex-col leading-tight sm:flex">
             <span className="font-script text-ink text-xl leading-none">Sangguniang Bayan</span>
             <span className="text-ink-faint font-mono text-[11px] tracking-wide">

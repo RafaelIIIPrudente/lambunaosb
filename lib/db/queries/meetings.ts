@@ -52,6 +52,7 @@ export type MeetingRowData = {
   date: Date;
   title: string;
   type: MeetingType;
+  location: string;
   audioLength: string | null;
   transcript: string | null;
   status: MeetingDisplayStatus;
@@ -65,6 +66,7 @@ export async function getMeetingsList(): Promise<MeetingRowData[]> {
       title: meetings.title,
       type: meetings.type,
       scheduledAt: meetings.scheduledAt,
+      location: meetings.location,
       audioDurationMs: meetings.audioDurationMs,
       status: meetings.status,
       transcriptStatus: transcripts.status,
@@ -79,6 +81,7 @@ export async function getMeetingsList(): Promise<MeetingRowData[]> {
     title: row.title,
     type: row.type,
     date: row.scheduledAt,
+    location: row.location,
     audioLength: formatDuration(row.audioDurationMs),
     transcript: row.transcriptStatus ? TRANSCRIPT_LABEL_MAP[row.transcriptStatus] : null,
     status: STATUS_DISPLAY_MAP[row.status],
@@ -153,6 +156,7 @@ export async function getUpcomingMeetings(limit = 5): Promise<MeetingRowData[]> 
       title: meetings.title,
       type: meetings.type,
       scheduledAt: meetings.scheduledAt,
+      location: meetings.location,
       audioDurationMs: meetings.audioDurationMs,
       status: meetings.status,
     })
@@ -173,6 +177,7 @@ export async function getUpcomingMeetings(limit = 5): Promise<MeetingRowData[]> 
     title: row.title,
     type: row.type,
     date: row.scheduledAt,
+    location: row.location,
     audioLength: null,
     transcript: null,
     status: STATUS_DISPLAY_MAP[row.status],

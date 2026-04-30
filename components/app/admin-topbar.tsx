@@ -2,10 +2,12 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Bell, Plus, Search } from 'lucide-react';
+import { Plus, Search } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { SidebarTrigger } from '@/components/ui/sidebar';
+import { NotificationBell, type NotificationCounts } from '@/components/app/notification-bell';
+import type { UserRole } from '@/lib/validators/user';
 
 const ROUTE_LABELS: Record<string, string> = {
   dashboard: 'Dashboard',
@@ -28,7 +30,12 @@ const PRIMARY_ACTIONS: Record<string, { label: string; href: string }> = {
   members: { label: 'New member', href: '/admin/members/new' },
 };
 
-export function AdminTopbar() {
+type AdminTopbarProps = {
+  notificationCounts: NotificationCounts;
+  role: UserRole;
+};
+
+export function AdminTopbar({ notificationCounts, role }: AdminTopbarProps) {
   const pathname = usePathname();
   const segments = pathname.split('/').filter(Boolean);
   const lastSegment = segments[segments.length - 1] ?? 'dashboard';
@@ -64,18 +71,7 @@ export function AdminTopbar() {
           </Button>
         )}
 
-        <Button variant="ghost" size="icon-sm" aria-label="Notifications" className="relative">
-          <Bell />
-          <span
-            aria-hidden="true"
-            className="bg-rust ring-paper absolute top-1 right-1 inline-block size-1.5 rounded-full ring-2"
-          />
-        </Button>
-
-        <span
-          aria-hidden="true"
-          className="bg-paper-3 border-ink/15 inline-flex size-7 shrink-0 items-center justify-center rounded-full border"
-        />
+        <NotificationBell counts={notificationCounts} role={role} />
       </div>
     </header>
   );

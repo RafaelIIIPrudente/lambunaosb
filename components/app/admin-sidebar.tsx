@@ -1,6 +1,7 @@
 'use client';
 
 import { useTransition } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -38,6 +39,17 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
+import { USER_ROLE_LABELS, type UserRole } from '@/lib/validators/user';
+
+function computeInitials(fullName: string): string {
+  return fullName
+    .split(/\s+/)
+    .map((part) => part.charAt(0))
+    .filter(Boolean)
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+}
 
 type NavItem = {
   href: string;
@@ -59,9 +71,16 @@ const ITEMS: NavItem[] = [
   { href: '/admin/settings', label: 'Settings', icon: Settings },
 ];
 
-export function AdminSidebar() {
+type AdminSidebarProps = {
+  fullName: string;
+  role: UserRole;
+};
+
+export function AdminSidebar({ fullName, role }: AdminSidebarProps) {
   const pathname = usePathname();
   const [isPending, startTransition] = useTransition();
+  const initials = computeInitials(fullName);
+  const roleLabel = USER_ROLE_LABELS[role];
 
   function handleSignOut() {
     startTransition(async () => {
@@ -77,22 +96,20 @@ export function AdminSidebar() {
           className="flex items-center gap-3 rounded-md p-2"
           aria-label="SB Lambunao Admin — Dashboard"
         >
-          <span
-            aria-hidden="true"
-            className="border-ink/40 bg-paper text-ink inline-flex size-9 shrink-0 items-center justify-center rounded-full border font-mono text-[11px] font-semibold tracking-wide"
-          >
-            SB
-          </span>
+          <Image
+            src="/seal/lambunao-seal.png"
+            width={36}
+            height={36}
+            alt=""
+            priority
+            className="size-9 shrink-0 rounded-full"
+          />
           <div className="flex flex-1 flex-col leading-tight">
             <span className="font-script text-ink text-lg leading-none">Lambunao SB</span>
             <span className="text-ink-faint font-mono text-[11px] tracking-wide">
               Iloilo · admin
             </span>
           </div>
-          <span
-            aria-hidden="true"
-            className="bg-paper-3 border-ink/12 inline-flex size-7 shrink-0 items-center justify-center rounded-full border"
-          />
         </Link>
       </SidebarHeader>
 
@@ -141,14 +158,16 @@ export function AdminSidebar() {
           >
             <span
               aria-hidden="true"
-              className="bg-paper-3 border-ink/15 inline-flex size-9 shrink-0 items-center justify-center rounded-full border"
-            />
+              className="bg-paper-3 border-ink/15 text-ink inline-flex size-9 shrink-0 items-center justify-center rounded-full border font-mono text-[11px] font-semibold tracking-wide"
+            >
+              {initials}
+            </span>
             <div className="flex flex-1 flex-col text-xs leading-tight">
               <span className="text-ink-faint font-mono text-[10px] tracking-wide uppercase">
                 Signed in as
               </span>
-              <span className="text-ink font-script text-base leading-tight">[Secretary]</span>
-              <span className="text-ink-faint text-[11px]">Secretary</span>
+              <span className="text-ink font-script text-base leading-tight">{fullName}</span>
+              <span className="text-ink-faint text-[11px]">{roleLabel}</span>
             </div>
             <ChevronsUpDown className="text-ink-faint size-4 shrink-0" aria-hidden="true" />
           </DropdownMenuTrigger>
