@@ -9,6 +9,8 @@ import { format } from 'date-fns';
 import { MDXRemote } from 'next-mdx-remote/rsc';
 import remarkGfm from 'remark-gfm';
 
+import { FadeUp } from '@/components/motion/fade-up';
+import { Stagger, StaggerItem } from '@/components/motion/stagger';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ImagePlaceholder } from '@/components/ui/image-placeholder';
@@ -186,7 +188,7 @@ export default async function MemberDetailPage({ params }: { params: Promise<{ i
       />
 
       <section className="mx-auto w-full max-w-[1100px] px-4 py-10 sm:px-8 md:py-12">
-        <nav aria-label="Breadcrumb" className="mb-8">
+        <FadeUp as="nav" aria-label="Breadcrumb" className="mb-8">
           <ol className="text-ink-faint flex flex-wrap items-center gap-2 font-mono text-xs">
             <li>
               <Link href="/" className="hover:text-rust">
@@ -208,14 +210,14 @@ export default async function MemberDetailPage({ params }: { params: Promise<{ i
               {fullName}
             </li>
           </ol>
-        </nav>
+        </FadeUp>
 
         <div className="grid gap-10 md:grid-cols-[280px_1fr] md:gap-12">
           {/* Left column — portrait + office */}
-          <aside className="flex flex-col gap-5">
+          <FadeUp as="aside" delay={0.1} className="flex flex-col gap-5">
             <div className="border-ink/30 rounded-md border border-dashed p-1.5">
               {photoUrl ? (
-                <div className="bg-paper-2 relative aspect-[3/4] w-full overflow-hidden rounded-md">
+                <div className="bg-paper-2 relative aspect-[3/4] w-full overflow-hidden rounded-md transition-transform duration-300 hover:scale-[1.01]">
                   <Image
                     src={photoUrl}
                     alt={`Portrait of ${fullName}`}
@@ -257,35 +259,37 @@ export default async function MemberDetailPage({ params }: { params: Promise<{ i
                 </Link>
               </Button>
             </div>
-          </aside>
+          </FadeUp>
 
           {/* Right column — name, badges, bio, activity */}
-          <div className="flex flex-col gap-6">
-            <div>
+          <Stagger as="div" className="flex flex-col gap-6">
+            <StaggerItem>
               <p className="text-rust mb-3 font-mono text-[10px] font-medium tracking-[0.22em] uppercase">
                 {eyebrowParts.join(' · ')}
               </p>
               <h1 className="text-ink font-display text-5xl leading-tight font-bold tracking-tight md:text-6xl">
                 {fullName}
               </h1>
-            </div>
+            </StaggerItem>
 
             {member.committeeAssignments.length > 0 && (
-              <ul className="flex flex-wrap gap-2">
-                {member.committeeAssignments.map((assignment) => (
-                  <li key={assignment.committee.id}>
-                    <Badge
-                      variant={assignment.role === 'chair' ? 'destructive' : 'outline'}
-                      className="h-7 px-3"
-                    >
-                      {assignment.committee.name} ({ROLE_LABELS[assignment.role]})
-                    </Badge>
-                  </li>
-                ))}
-              </ul>
+              <StaggerItem>
+                <ul className="flex flex-wrap gap-2">
+                  {member.committeeAssignments.map((assignment) => (
+                    <li key={assignment.committee.id}>
+                      <Badge
+                        variant={assignment.role === 'chair' ? 'destructive' : 'outline'}
+                        className="h-7 px-3"
+                      >
+                        {assignment.committee.name} ({ROLE_LABELS[assignment.role]})
+                      </Badge>
+                    </li>
+                  ))}
+                </ul>
+              </StaggerItem>
             )}
 
-            <section>
+            <StaggerItem as="section">
               <p className="text-rust mb-3 font-mono text-[10px] font-medium tracking-[0.18em] uppercase">
                 Biography
               </p>
@@ -299,10 +303,10 @@ export default async function MemberDetailPage({ params }: { params: Promise<{ i
               ) : (
                 <p className="text-ink-soft font-display text-lg italic">Biography coming soon.</p>
               )}
-            </section>
+            </StaggerItem>
 
             {sponsorships.length > 0 && (
-              <section>
+              <StaggerItem as="section">
                 <p className="text-rust mb-4 font-mono text-[10px] font-medium tracking-[0.18em] uppercase">
                   Recent activity
                 </p>
@@ -324,9 +328,9 @@ export default async function MemberDetailPage({ params }: { params: Promise<{ i
                     </li>
                   ))}
                 </ul>
-              </section>
+              </StaggerItem>
             )}
-          </div>
+          </Stagger>
         </div>
       </section>
     </>

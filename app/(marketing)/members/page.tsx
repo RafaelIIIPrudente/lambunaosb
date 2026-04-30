@@ -5,6 +5,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 
+import { FadeUp } from '@/components/motion/fade-up';
+import { Stagger, StaggerItem } from '@/components/motion/stagger';
 import { ImagePlaceholder } from '@/components/ui/image-placeholder';
 import { env } from '@/env';
 import { getActiveMembers, type MemberCardData } from '@/lib/db/queries/members';
@@ -122,7 +124,7 @@ export default async function MembersPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }}
       />
       <section className="mx-auto w-full max-w-[1200px] px-4 py-12 sm:px-8 md:py-16">
-        <header className="mb-12">
+        <FadeUp as="header" className="mb-12">
           <p className="text-rust mb-3 font-mono text-[11px] font-medium tracking-[0.22em] uppercase">
             Your council · {term}
           </p>
@@ -134,7 +136,7 @@ export default async function MembersPage() {
               ? `The Sangguniang Bayan is composed of the Vice Mayor (presiding officer) and ${sbMemberCount} elected members who serve three-year terms.`
               : `The Sangguniang Bayan is composed of ${sbMemberCount} elected members who serve three-year terms.`}
           </p>
-        </header>
+        </FadeUp>
 
         {members.length === 0 ? (
           <div className="border-ink/15 bg-paper-2 rounded-md border p-8">
@@ -143,12 +145,12 @@ export default async function MembersPage() {
             </p>
           </div>
         ) : (
-          <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <Stagger as="ul" className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {members.map((member) => {
               const photoUrl = memberPhotoById.get(member.id);
               return (
-                <li key={member.id}>
-                  <article className="border-ink/30 hover:border-ink/50 hover:shadow-e1 bg-paper flex h-full flex-col gap-4 rounded-md border border-dashed p-4 transition-all">
+                <StaggerItem as="li" key={member.id}>
+                  <article className="border-ink/30 hover:border-ink/50 hover:shadow-e1 bg-paper flex h-full flex-col gap-4 rounded-md border border-dashed p-4 transition-all hover:-translate-y-0.5">
                     {photoUrl ? (
                       <div className="bg-paper-2 relative aspect-square w-full overflow-hidden rounded-md">
                         <Image
@@ -192,10 +194,10 @@ export default async function MembersPage() {
                       </Link>
                     </div>
                   </article>
-                </li>
+                </StaggerItem>
               );
             })}
-          </ul>
+          </Stagger>
         )}
       </section>
     </>

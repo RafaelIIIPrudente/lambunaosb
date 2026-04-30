@@ -7,6 +7,8 @@ import { MDXRemote } from 'next-mdx-remote/rsc';
 import remarkGfm from 'remark-gfm';
 
 import { FacebookIcon } from '@/components/icons/facebook';
+import { FadeUp } from '@/components/motion/fade-up';
+import { Stagger, StaggerItem } from '@/components/motion/stagger';
 import { env } from '@/env';
 import { SOCIAL_LINKS } from '@/lib/constants/social';
 import { getActiveMembers } from '@/lib/db/queries/members';
@@ -105,16 +107,16 @@ export default async function AboutPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(aboutPageJsonLd) }}
       />
       <section className="mx-auto w-full max-w-[1100px] px-4 py-12 sm:px-8 md:py-16">
-        <header className="mb-12">
+        <FadeUp as="header" className="mb-12">
           <p className="text-rust mb-3 font-mono text-[11px] font-medium tracking-[0.22em] uppercase">
             About{tenant.establishedYear ? ` · Established ${tenant.establishedYear}` : ''}
           </p>
           <h1 className="text-ink font-display text-5xl font-bold tracking-tight md:text-6xl">
             The Sangguniang Bayan of Lambunao
           </h1>
-        </header>
+        </FadeUp>
 
-        <figure className="mb-12">
+        <FadeUp as="figure" className="mb-12">
           <div className="bg-paper-2 border-ink/15 relative aspect-[16/9] w-full overflow-hidden rounded-md border">
             <Image
               src="/about/oath-taking-2025.png"
@@ -128,10 +130,10 @@ export default async function AboutPage() {
           <figcaption className="text-ink-faint mt-3 font-mono text-xs italic">
             Oath-taking and turnover ceremony of newly elected officials · Municipality of Lambunao.
           </figcaption>
-        </figure>
+        </FadeUp>
 
-        <div className="grid gap-12 md:grid-cols-[1.4fr_1fr]">
-          <div className="text-navy-primary font-display flex flex-col gap-5 text-lg leading-relaxed italic">
+        <Stagger as="div" className="grid gap-12 md:grid-cols-[1.4fr_1fr]">
+          <StaggerItem className="text-navy-primary font-display flex flex-col gap-5 text-lg leading-relaxed italic">
             <p>
               The <strong className="font-semibold not-italic">Sangguniang Bayan</strong>{' '}
               (&ldquo;Municipal Council&rdquo;) is the legislative body of the Municipality of
@@ -141,9 +143,9 @@ export default async function AboutPage() {
               Our regular sessions are open to the public and held weekly at the Session Hall, 2/F
               Municipal Hall.
             </p>
-          </div>
+          </StaggerItem>
 
-          <aside className="flex flex-col gap-5">
+          <StaggerItem as="aside" className="flex flex-col gap-5">
             <div className="border-ink/25 rounded-md border p-5">
               <p className="text-rust mb-3 font-mono text-[10px] font-medium tracking-[0.18em] uppercase">
                 Office
@@ -219,11 +221,11 @@ export default async function AboutPage() {
                 Open larger map ↗
               </a>
             </div>
-          </aside>
-        </div>
+          </StaggerItem>
+        </Stagger>
       </section>
 
-      <section id="privacy" className="bg-rust/8 border-rust/20 border-t border-b">
+      <FadeUp as="section" id="privacy" className="bg-rust/8 border-rust/20 border-t border-b">
         <div className="mx-auto w-full max-w-[1100px] px-4 py-10 sm:px-8">
           <p className="text-rust mb-3 font-mono text-[11px] font-medium tracking-[0.22em] uppercase">
             Data Privacy Act notice
@@ -241,7 +243,7 @@ export default async function AboutPage() {
             .
           </p>
         </div>
-      </section>
+      </FadeUp>
     </>
   );
 }

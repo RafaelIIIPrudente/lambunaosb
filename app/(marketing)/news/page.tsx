@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 
+import { FadeUp } from '@/components/motion/fade-up';
+import { Stagger, StaggerItem } from '@/components/motion/stagger';
 import { ImagePlaceholder } from '@/components/ui/image-placeholder';
 import { env } from '@/env';
 import { getPublishedNews, type NewsCategory } from '@/lib/db/queries/news';
@@ -108,37 +110,39 @@ export default async function NewsPage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }}
       />
       <section className="mx-auto w-full max-w-[1200px] px-4 py-12 sm:px-8 md:py-16">
-        <header className="mb-10">
+        <FadeUp as="header" className="mb-10">
           <p className="text-rust mb-3 font-mono text-[11px] font-medium tracking-[0.22em] uppercase">
             Bulletin
           </p>
           <h1 className="text-ink font-display text-5xl font-bold tracking-tight md:text-6xl">
             News &amp; Updates
           </h1>
-        </header>
+        </FadeUp>
 
-        <div role="group" aria-label="Filter by category" className="mb-10 flex flex-wrap gap-2">
-          <Link
-            href="/news"
-            aria-current={!category ? 'page' : undefined}
-            className={`${FILTER_BASE_CLASS} ${!category ? FILTER_ACTIVE_CLASS : FILTER_INACTIVE_CLASS}`}
-          >
-            All
-          </Link>
-          {CATEGORY_KEYS.map((key) => {
-            const isActive = key === category;
-            return (
-              <Link
-                key={key}
-                href={`/news?category=${key}`}
-                aria-current={isActive ? 'page' : undefined}
-                className={`${FILTER_BASE_CLASS} ${isActive ? FILTER_ACTIVE_CLASS : FILTER_INACTIVE_CLASS}`}
-              >
-                {CATEGORY_LABELS[key]}
-              </Link>
-            );
-          })}
-        </div>
+        <FadeUp as="div" delay={0.1} className="mb-10">
+          <div role="group" aria-label="Filter by category" className="flex flex-wrap gap-2">
+            <Link
+              href="/news"
+              aria-current={!category ? 'page' : undefined}
+              className={`${FILTER_BASE_CLASS} ${!category ? FILTER_ACTIVE_CLASS : FILTER_INACTIVE_CLASS}`}
+            >
+              All
+            </Link>
+            {CATEGORY_KEYS.map((key) => {
+              const isActive = key === category;
+              return (
+                <Link
+                  key={key}
+                  href={`/news?category=${key}`}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={`${FILTER_BASE_CLASS} ${isActive ? FILTER_ACTIVE_CLASS : FILTER_INACTIVE_CLASS}`}
+                >
+                  {CATEGORY_LABELS[key]}
+                </Link>
+              );
+            })}
+          </div>
+        </FadeUp>
 
         {items.length === 0 ? (
           <div className="border-ink/15 bg-paper-2 rounded-md border p-8">
@@ -148,12 +152,12 @@ export default async function NewsPage({
           </div>
         ) : (
           <>
-            <ul className="grid gap-8 lg:grid-cols-2">
+            <Stagger as="ul" className="grid gap-8 lg:grid-cols-2">
               {items.map((post) => {
                 const coverUrl = coverByPostId.get(post.id);
                 return (
-                  <li key={post.id}>
-                    <article className="border-ink/30 hover:border-ink/50 hover:shadow-e1 bg-paper flex h-full flex-col gap-4 rounded-md border border-dashed p-6 transition-all">
+                  <StaggerItem as="li" key={post.id}>
+                    <article className="border-ink/30 hover:border-ink/50 hover:shadow-e1 bg-paper flex h-full flex-col gap-4 rounded-md border border-dashed p-6 transition-all hover:-translate-y-0.5">
                       <Link
                         href={`/news/${post.slug}`}
                         className="focus-visible:ring-rust block focus-visible:ring-2 focus-visible:outline-none"
@@ -202,10 +206,10 @@ export default async function NewsPage({
                         </Link>
                       </div>
                     </article>
-                  </li>
+                  </StaggerItem>
                 );
               })}
-            </ul>
+            </Stagger>
             {items.length === 24 && (
               <p className="text-ink-faint mt-10 font-mono text-xs italic">
                 Showing latest 24 posts. Older posts will be reachable via pagination.

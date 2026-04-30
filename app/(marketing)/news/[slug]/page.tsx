@@ -9,6 +9,8 @@ import { format } from 'date-fns';
 import { MDXRemote } from 'next-mdx-remote/rsc';
 import remarkGfm from 'remark-gfm';
 
+import { FadeUp } from '@/components/motion/fade-up';
+import { Stagger, StaggerItem } from '@/components/motion/stagger';
 import { ImagePlaceholder } from '@/components/ui/image-placeholder';
 import { NewsSharePrint } from '@/components/marketing/news-share-print';
 import { env } from '@/env';
@@ -167,85 +169,100 @@ export default async function NewsPostPage({ params }: { params: Promise<{ slug:
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
       <article className="mx-auto w-full max-w-[860px] px-4 py-12 sm:px-8 md:py-16">
-        <nav aria-label="Breadcrumb" className="mb-8">
-          <ol className="text-ink-faint flex items-center gap-2 font-mono text-xs">
-            <li>
-              <Link href="/" className="hover:text-rust">
-                Home
-              </Link>
-            </li>
-            <li aria-hidden="true">
-              <ChevronRight className="size-3" />
-            </li>
-            <li>
-              <Link href="/news" className="hover:text-rust">
-                News
-              </Link>
-            </li>
-            <li aria-hidden="true">
-              <ChevronRight className="size-3" />
-            </li>
-            <li className="text-rust font-semibold tracking-[0.12em] uppercase" aria-current="page">
-              {CATEGORY_LABELS[post.category]}
-            </li>
-          </ol>
-        </nav>
+        <Stagger as="div">
+          <StaggerItem>
+            <nav aria-label="Breadcrumb" className="mb-8">
+              <ol className="text-ink-faint flex items-center gap-2 font-mono text-xs">
+                <li>
+                  <Link href="/" className="hover:text-rust">
+                    Home
+                  </Link>
+                </li>
+                <li aria-hidden="true">
+                  <ChevronRight className="size-3" />
+                </li>
+                <li>
+                  <Link href="/news" className="hover:text-rust">
+                    News
+                  </Link>
+                </li>
+                <li aria-hidden="true">
+                  <ChevronRight className="size-3" />
+                </li>
+                <li
+                  className="text-rust font-semibold tracking-[0.12em] uppercase"
+                  aria-current="page"
+                >
+                  {CATEGORY_LABELS[post.category]}
+                </li>
+              </ol>
+            </nav>
+          </StaggerItem>
 
-        <h1 className="text-ink font-display text-4xl leading-[1.1] font-bold tracking-tight md:text-5xl">
-          {post.title}
-        </h1>
+          <StaggerItem>
+            <h1 className="text-ink font-display text-4xl leading-[1.1] font-bold tracking-tight md:text-5xl">
+              {post.title}
+            </h1>
+          </StaggerItem>
 
-        <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex items-start gap-3">
-            {initials && (
-              <span
-                aria-hidden="true"
-                className="bg-paper-2 border-ink/20 text-ink font-script mt-1 inline-flex size-9 shrink-0 items-center justify-center rounded-full border text-sm"
-              >
-                {initials}
-              </span>
+          <StaggerItem className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex items-start gap-3">
+              {initials && (
+                <span
+                  aria-hidden="true"
+                  className="bg-paper-2 border-ink/20 text-ink font-script mt-1 inline-flex size-9 shrink-0 items-center justify-center rounded-full border text-sm"
+                >
+                  {initials}
+                </span>
+              )}
+              <div className="flex flex-col leading-tight">
+                <span className="font-script text-ink text-base">{post.author}</span>
+                <span className="text-ink-faint mt-0.5 font-mono text-[11px]">
+                  Posted {format(new Date(post.publishedAt), 'MMM d, yyyy')} · {readingMinutes} min
+                  read
+                </span>
+              </div>
+            </div>
+
+            <NewsSharePrint title={post.title} url={`${SITE_URL}/news/${slug}`} />
+          </StaggerItem>
+
+          <StaggerItem className="mt-10">
+            {coverUrl ? (
+              <div className="bg-paper-2 relative aspect-[16/9] w-full overflow-hidden rounded-md">
+                <Image
+                  src={coverUrl}
+                  alt={`Cover image for ${post.title}`}
+                  fill
+                  priority
+                  unoptimized
+                  sizes="(min-width: 768px) 860px, 100vw"
+                  className="object-cover"
+                />
+              </div>
+            ) : (
+              <ImagePlaceholder ratio="16:9" label="Hero image" />
             )}
-            <div className="flex flex-col leading-tight">
-              <span className="font-script text-ink text-base">{post.author}</span>
-              <span className="text-ink-faint mt-0.5 font-mono text-[11px]">
-                Posted {format(new Date(post.publishedAt), 'MMM d, yyyy')} · {readingMinutes} min
-                read
-              </span>
-            </div>
-          </div>
-
-          <NewsSharePrint title={post.title} url={`${SITE_URL}/news/${slug}`} />
-        </div>
-
-        <div className="mt-10">
-          {coverUrl ? (
-            <div className="bg-paper-2 relative aspect-[16/9] w-full overflow-hidden rounded-md">
-              <Image
-                src={coverUrl}
-                alt={`Cover image for ${post.title}`}
-                fill
-                priority
-                unoptimized
-                sizes="(min-width: 768px) 860px, 100vw"
-                className="object-cover"
-              />
-            </div>
-          ) : (
-            <ImagePlaceholder ratio="16:9" label="Hero image" />
-          )}
-        </div>
+          </StaggerItem>
+        </Stagger>
 
         {hasBody ? (
-          <div className="text-navy-primary font-display prose-news mt-10 flex flex-col gap-5 text-lg leading-relaxed italic">
+          <FadeUp
+            as="div"
+            className="text-navy-primary font-display prose-news mt-10 flex flex-col gap-5 text-lg leading-relaxed italic"
+          >
             <MDXRemote
               source={post.bodyMdx}
               options={{ mdxOptions: { remarkPlugins: [remarkGfm] } }}
             />
-          </div>
+          </FadeUp>
         ) : post.excerpt ? (
-          <p className="text-navy-primary font-display mt-10 text-lg leading-relaxed italic">
+          <FadeUp
+            as="p"
+            className="text-navy-primary font-display mt-10 text-lg leading-relaxed italic"
+          >
             {post.excerpt}
-          </p>
+          </FadeUp>
         ) : null}
       </article>
     </>
