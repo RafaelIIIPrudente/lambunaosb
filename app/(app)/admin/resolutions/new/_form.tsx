@@ -10,6 +10,7 @@ import { createResolution, uploadResolutionPdf } from '@/app/_actions/resolution
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Field, FieldInput, FieldSelect, FieldTextarea } from '@/components/ui/field';
+import { formatBytes } from '@/lib/format';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import {
@@ -30,12 +31,6 @@ type Props = {
 const TODAY_DATE = new Date().toISOString().slice(0, 10);
 const MAX_BYTES = 25 * 1024 * 1024;
 const PDF_BUCKET = 'resolutions-pdfs';
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
-}
 
 export function NewResolutionForm({ sponsorOptions, meetingOptions, tenantId }: Props) {
   const router = useRouter();

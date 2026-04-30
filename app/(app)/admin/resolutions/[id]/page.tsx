@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { format } from 'date-fns';
 import { inArray } from 'drizzle-orm';
-import { ChevronRight, History } from 'lucide-react';
+import { ChevronRight, Download, History, Upload } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import { getMeetingById } from '@/lib/db/queries/meetings';
 import { getResolutionById, getResolutionVersions } from '@/lib/db/queries/resolutions';
 import { getCurrentTenantId } from '@/lib/db/queries/tenant';
 import { sbMembers } from '@/lib/db/schema';
+import { fileNameFromPath, formatBytes } from '@/lib/format';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { RESOLUTION_STATUS_LABELS, RESOLUTION_TYPE_LABELS } from '@/lib/validators/resolution';
 
@@ -108,18 +109,69 @@ export default async function ResolutionDetailPage({
       </div>
 
       <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
-        <article className="border-ink/15 rounded-md border p-6">
-          <p className="text-rust mb-4 font-mono text-[10px] font-semibold tracking-[0.18em] uppercase">
-            Body
-          </p>
-          {resolution.bodyMd.trim().length > 0 ? (
-            <div className="text-ink prose-sm max-w-none leading-relaxed whitespace-pre-wrap">
-              {resolution.bodyMd}
+        <article className="border-ink/15 flex flex-col overflow-hidden rounded-md border">
+          <header className="border-ink/15 flex flex-wrap items-center justify-between gap-3 border-b px-5 py-3">
+            <div className="min-w-0">
+              <p className="text-rust font-mono text-[10px] font-semibold tracking-[0.18em] uppercase">
+                Resolution PDF
+              </p>
+              {resolution.pdfStoragePath ? (
+                <p className="text-ink-soft mt-0.5 font-mono text-[11px] break-all">
+                  {fileNameFromPath(resolution.pdfStoragePath)}
+                  {resolution.pdfPageCount !== null && ` · ${resolution.pdfPageCount} pages`}
+                  {resolution.pdfByteSize !== null && ` · ${formatBytes(resolution.pdfByteSize)}`}
+                </p>
+              ) : null}
             </div>
+            {signedDownloadUrl && (
+              <Button variant="outline" size="sm" asChild className="font-medium">
+                <a
+                  href={signedDownloadUrl}
+                  download={
+                    resolution.pdfStoragePath
+                      ? fileNameFromPath(resolution.pdfStoragePath)
+                      : undefined
+                  }
+                  rel="noopener noreferrer"
+                  target="_blank"
+                  aria-label="Download signed PDF"
+                >
+                  <Download />
+                  Download
+                </a>
+              </Button>
+            )}
+          </header>
+
+          {signedDownloadUrl ? (
+            <iframe
+              src={signedDownloadUrl}
+              title={`PDF preview for ${resolution.number}`}
+              className="bg-paper-2/40 min-h-[800px] w-full border-0"
+            />
           ) : (
-            <p className="text-ink-faint font-mono text-xs">
-              No body content yet. Edit the draft to add WHEREAS clauses and the resolved text.
-            </p>
+            <div className="bg-paper-2/30 flex min-h-[320px] flex-col items-center justify-center gap-3 px-6 py-10 text-center">
+              <Upload className="text-ink-faint size-8" aria-hidden="true" />
+              <p className="text-ink-faint font-mono text-xs">No PDF uploaded yet.</p>
+              <p className="text-ink-soft max-w-sm text-sm">
+                Use the <span className="text-ink font-medium">Signed PDF</span> panel on the right
+                to upload the scanned, signed copy.
+                <ChevronRight className="ml-1 inline size-3.5 align-middle" aria-hidden="true" />
+              </p>
+            </div>
+          )}
+
+          {resolution.bodyMd.trim().length > 0 && (
+            <details className="border-ink/15 group/body border-t">
+              <summary className="text-rust hover:bg-paper-2/40 focus-visible:ring-rust/40 cursor-pointer rounded-b-md px-5 py-3 font-mono text-[10px] font-semibold tracking-[0.18em] uppercase transition-colors outline-none focus-visible:ring-2">
+                Plain-text version
+              </summary>
+              <div className="border-ink/15 border-t px-5 py-4">
+                <div className="text-ink prose-sm max-w-none leading-relaxed whitespace-pre-wrap">
+                  {resolution.bodyMd}
+                </div>
+              </div>
+            </details>
           )}
         </article>
 

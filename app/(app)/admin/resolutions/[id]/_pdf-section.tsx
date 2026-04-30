@@ -6,6 +6,7 @@ import { Download, FileUp, FileText, RefreshCw } from 'lucide-react';
 
 import { uploadResolutionPdf } from '@/app/_actions/resolutions';
 import { Button } from '@/components/ui/button';
+import { fileNameFromPath, formatBytes } from '@/lib/format';
 import { createClient } from '@/lib/supabase/client';
 
 const MAX_BYTES = 25 * 1024 * 1024;
@@ -20,17 +21,6 @@ type Props = {
   signedDownloadUrl: string | null;
   canUpload: boolean;
 };
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
-}
-
-function fileNameFromPath(path: string): string {
-  const parts = path.split('/');
-  return parts[parts.length - 1] ?? path;
-}
 
 export function PdfSection({
   resolutionId,
