@@ -4,124 +4,256 @@ import { format } from 'date-fns';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardEyebrow, CardFooter, CardTitle } from '@/components/ui/card';
-
-const TODAY = new Date('2026-06-14T08:30:00+08:00');
-
-const ACTIVITY = [
-  { time: '09:32', actor: '[Secretary]', action: 'published', target: 'RES-2026-014' },
-  {
-    time: '08:14',
-    actor: '[Vice Mayor]',
-    action: 'approved transcript for',
-    target: 'Session #13',
-  },
-  { time: '07:50', actor: 'System', action: 'auto-saved', target: '6 transcript revisions' },
-  { time: 'Yest', actor: '[Member 5]', action: 'uploaded', target: 'RES-2026-013.pdf' },
-];
+import { requireUser } from '@/lib/auth/require-user';
+import { getDashboardData } from '@/lib/db/queries/dashboard';
 
 export const metadata = {
   title: 'Dashboard',
 };
 
-export default function DashboardPage() {
+const ONE_DAY_MS = 1000 * 60 * 60 * 24;
+
+function greetingPrefix(now: Date): string {
+  const hour = now.getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 18) return 'Good afternoon';
+  return 'Good evening';
+}
+
+function firstName(fullName: string): string {
+  return fullName.trim().split(/\s+/)[0] ?? fullName;
+}
+
+function relativeDay(target: Date, now: Date): string {
+  const days = Math.round((target.getTime() - now.getTime()) / ONE_DAY_MS);
+  if (days === 0) return 'today';
+  if (days === 1) return 'tomorrow';
+  if (days > 0) return `in ${days} days`;
+  if (days === -1) return 'yesterday';
+  return `${Math.abs(days)} days ago`;
+}
+
+function humanizeAction(action: string): string {
+  const verb = action.split('.')[1] ?? action;
+  return verb.replace(/_/g, ' ');
+}
+
+function humanizeTargetType(targetType: string): string {
+  return targetType.replace(/_/g, ' ');
+}
+
+export default async function DashboardPage() {
+  const ctx = await requireUser();
+  const data = await getDashboardData();
+  const now = new Date();
+
+  const upcoming = data.upcomingMeeting;
+  const recentResolution = data.recentResolution;
+  const recentActivity = data.recentActivity;
+  const pendingCount = data.pendingQueriesCount;
+
   return (
     <div className="flex flex-col gap-8">
-      {/* Greeting */}
       <header>
         <p className="text-ink-faint mb-2 font-mono text-[11px] tracking-[0.22em] uppercase">
-          {format(TODAY, 'EEE · d MMM yyyy')}
+          {format(now, 'EEE · d MMM yyyy')}
         </p>
-        <h1 className="text-ink font-script text-4xl leading-tight">Good morning, [Secretary].</h1>
-        <p className="text-ink-soft mt-1 text-sm italic">4 things need your attention today.</p>
+        <h1 className="text-ink font-script text-4xl leading-tight">
+          {greetingPrefix(now)}, {firstName(ctx.profile.fullName)}.
+        </h1>
+        <p className="text-ink-soft mt-1 text-sm italic">
+          {pendingCount === 0
+            ? 'Inbox is clear. Quiet day ahead.'
+            : pendingCount === 1
+              ? '1 citizen query needs your attention today.'
+              : `${pendingCount} citizen queries need your attention today.`}
+        </p>
       </header>
 
-      {/* 2×2 grid */}
-      <div className="grid gap-5 lg:grid-cols-2">
-        {/* RUST attention card — single per page */}
+      <div className="grid gap-5 md:grid-cols-2">
+        {/* RUST attention card — Upcoming meeting */}
         <Card variant="attention">
           <CardEyebrow>
             <Calendar className="mr-1.5 inline size-3" aria-hidden="true" />
-            Upcoming · in 2 days
+            {upcoming ? `Upcoming · ${relativeDay(upcoming.date, now)}` : 'Upcoming'}
           </CardEyebrow>
-          <CardTitle className="font-script text-3xl">Regular Session #14</CardTitle>
-          <CardDescription>Monday · 9:00 AM · Session Hall. 14 members confirmed.</CardDescription>
-          <CardFooter>
-            <Button
-              variant="secondary"
-              size="sm"
-              asChild
-              className="bg-paper text-ink hover:bg-paper/85"
-            >
-              <Link href="/meetings/mtg-014">
-                <Eye />
-                Agenda
-              </Link>
-            </Button>
-            <Link
-              href="/meetings/mtg-014"
-              className="text-paper hover:text-paper/85 inline-flex items-center gap-1.5 text-sm font-medium underline-offset-4 hover:underline"
-            >
-              <Mic className="size-3.5" aria-hidden="true" />
-              Open recorder
-            </Link>
-          </CardFooter>
+          {upcoming ? (
+            <>
+              <CardTitle className="font-script text-3xl">{upcoming.title}</CardTitle>
+              <CardDescription>
+                {format(upcoming.date, 'EEEE · h:mm a')} · {upcoming.type.replace(/_/g, ' ')}{' '}
+                session.
+              </CardDescription>
+              <CardFooter>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  asChild
+                  className="bg-paper text-ink hover:bg-paper/85"
+                >
+                  <Link
+                    href={`/admin/meetings/${upcoming.id}`}
+                    aria-label={`View agenda for ${upcoming.title}`}
+                  >
+                    <Eye />
+                    Agenda
+                  </Link>
+                </Button>
+                <Link
+                  href={`/admin/meetings/${upcoming.id}`}
+                  className="text-paper hover:text-paper/85 focus-visible:ring-paper/40 inline-flex min-h-11 items-center gap-1.5 rounded text-sm font-medium underline-offset-4 outline-none hover:underline focus-visible:ring-2"
+                  aria-label={`Open recorder for ${upcoming.title}`}
+                >
+                  <Mic className="size-3.5" aria-hidden="true" />
+                  Open recorder
+                </Link>
+              </CardFooter>
+            </>
+          ) : (
+            <>
+              <CardTitle className="font-script text-3xl">No sessions scheduled.</CardTitle>
+              <p className="text-paper/85 font-mono text-xs">
+                The next regular session will appear here once it&apos;s on the calendar.
+              </p>
+              <CardFooter>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  asChild
+                  className="bg-paper text-ink hover:bg-paper/85"
+                >
+                  <Link href="/admin/meetings/new" aria-label="Schedule a new meeting">
+                    <Calendar />
+                    Schedule meeting
+                  </Link>
+                </Button>
+              </CardFooter>
+            </>
+          )}
         </Card>
 
         {/* Pending queries */}
         <Card>
-          <CardEyebrow>Pending queries · 4 new</CardEyebrow>
-          <CardTitle>4 citizens are waiting on a reply.</CardTitle>
-          <CardDescription>Oldest: 2 days ago · Avg reply: 1.2 days.</CardDescription>
-          <CardFooter>
-            <Button variant="outline" size="sm" asChild className="font-medium">
-              <Link href="/queries">
-                Open inbox
-                <ArrowRight />
-              </Link>
-            </Button>
-            <span className="text-ink-faint font-mono text-xs">SLA: 3 days</span>
-          </CardFooter>
+          <CardEyebrow>
+            Pending queries · {pendingCount} {pendingCount === 1 ? 'open' : 'open'}
+          </CardEyebrow>
+          {pendingCount === 0 ? (
+            <>
+              <CardTitle>No citizen queries waiting.</CardTitle>
+              <p className="text-ink-faint font-mono text-xs">
+                All queries answered or closed. Inbox is clear.
+              </p>
+              <CardFooter>
+                <Button variant="outline" size="sm" asChild className="font-medium">
+                  <Link href="/admin/queries" aria-label="Open citizen queries inbox">
+                    Open inbox
+                    <ArrowRight />
+                  </Link>
+                </Button>
+              </CardFooter>
+            </>
+          ) : (
+            <>
+              <CardTitle>
+                {pendingCount === 1
+                  ? '1 citizen is waiting on a reply.'
+                  : `${pendingCount} citizens are waiting on a reply.`}
+              </CardTitle>
+              <CardDescription>
+                {data.queryCounts.new} new · {data.queryCounts.in_progress} in progress ·{' '}
+                {data.queryCounts.answered} answered.
+              </CardDescription>
+              <CardFooter>
+                <Button variant="outline" size="sm" asChild className="font-medium">
+                  <Link href="/admin/queries" aria-label="Open citizen queries inbox">
+                    Open inbox
+                    <ArrowRight />
+                  </Link>
+                </Button>
+                <span className="text-ink-faint font-mono text-xs">SLA: 3 days</span>
+              </CardFooter>
+            </>
+          )}
         </Card>
 
         {/* Recent resolution */}
         <Card>
           <CardEyebrow>Recent resolution</CardEyebrow>
-          <CardTitle>RES-2026-014 · Tricycle franchising</CardTitle>
-          <CardDescription>
-            Approved Jun 12 · sponsored by Hon. [Member 3] +1. Awaiting Mayor&apos;s signature.
-          </CardDescription>
-          <CardFooter>
-            <Button variant="outline" size="sm" asChild className="font-medium">
-              <Link href="/resolutions/res-2026-014">
-                <FileText />
-                Open PDF
-              </Link>
-            </Button>
-            <Button variant="outline" size="sm" asChild className="font-script text-sm">
-              <Link href="/resolutions/res-2026-014/history">Version history</Link>
-            </Button>
-          </CardFooter>
+          {recentResolution ? (
+            <>
+              <CardTitle>
+                {recentResolution.number} · {recentResolution.title}
+              </CardTitle>
+              <CardDescription>
+                {recentResolution.publishedAt
+                  ? `Published ${format(recentResolution.publishedAt, 'MMM d, yyyy')}`
+                  : recentResolution.dateFiled
+                    ? `Filed ${recentResolution.dateFiled}`
+                    : `Status: ${recentResolution.status.replace(/_/g, ' ')}`}
+                {recentResolution.primarySponsorName
+                  ? ` · sponsored by ${recentResolution.primarySponsorName}`
+                  : ''}
+                {recentResolution.coSponsorCount > 0
+                  ? ` +${recentResolution.coSponsorCount} co-sponsor${recentResolution.coSponsorCount === 1 ? '' : 's'}`
+                  : ''}
+                .
+              </CardDescription>
+              <CardFooter>
+                <Button variant="outline" size="sm" asChild className="font-medium">
+                  <Link
+                    href={`/admin/resolutions/${recentResolution.id}`}
+                    aria-label={`Open resolution ${recentResolution.number}`}
+                  >
+                    <FileText />
+                    Open
+                  </Link>
+                </Button>
+              </CardFooter>
+            </>
+          ) : (
+            <>
+              <CardTitle>No resolutions yet.</CardTitle>
+              <p className="text-ink-faint font-mono text-xs">
+                Drafts and approved resolutions will appear here once filed.
+              </p>
+              <CardFooter>
+                <Button variant="outline" size="sm" asChild className="font-medium">
+                  <Link href="/admin/resolutions/new" aria-label="Draft a new resolution">
+                    <FileText />
+                    Draft new
+                  </Link>
+                </Button>
+              </CardFooter>
+            </>
+          )}
         </Card>
 
         {/* Recent activity */}
         <Card>
           <CardEyebrow>Recent activity · last 24h</CardEyebrow>
-          <ul className="text-ink mt-1 flex flex-col gap-1.5 text-sm">
-            {ACTIVITY.map((event, i) => (
-              <li key={i} className="grid grid-cols-[auto_1fr] items-start gap-3">
-                <span className="text-ink-faint mt-0.5 font-mono text-[11px] tabular-nums">
-                  {event.time}
-                </span>
-                <span className="leading-snug">
-                  <span className="text-ink font-semibold">{event.actor}</span> {event.action}{' '}
-                  <span className="font-mono text-[12px]">{event.target}</span>
-                </span>
-              </li>
-            ))}
-          </ul>
+          {recentActivity.length === 0 ? (
+            <p className="text-ink-faint font-mono text-xs">No activity in the audit log yet.</p>
+          ) : (
+            <ul className="text-ink mt-1 flex flex-col gap-1.5 text-sm">
+              {recentActivity.map((event) => (
+                <li key={event.id} className="grid grid-cols-[auto_1fr] items-start gap-3">
+                  <span className="text-ink-faint mt-0.5 font-mono text-[11px] tabular-nums">
+                    {format(event.createdAt, 'HH:mm')}
+                  </span>
+                  <span className="leading-snug">
+                    <span className="text-ink font-semibold">{event.actorName ?? 'System'}</span>{' '}
+                    {humanizeAction(event.action)}{' '}
+                    <span className="font-mono text-[12px]">
+                      {humanizeTargetType(event.targetType)}
+                    </span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
           <CardFooter>
             <Button variant="outline" size="sm" asChild className="font-medium">
-              <Link href="/audit">
+              <Link href="/admin/audit" aria-label="Open the full audit log">
                 Full audit log
                 <ArrowRight />
               </Link>
