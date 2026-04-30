@@ -14,9 +14,9 @@ import { getUpcomingMeetings } from '@/lib/db/queries/meetings';
 import { getFeaturedNews } from '@/lib/db/queries/news';
 import { getCurrentTenant } from '@/lib/db/queries/tenant';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { createSignedStorageUrl } from '@/lib/supabase/signed-urls';
 
 const SITE_URL = env.NEXT_PUBLIC_SITE_URL;
-const SIGNED_URL_TTL_SECONDS = 60 * 60;
 const PAGE_TITLE = 'Sangguniang Bayan ng Lambunao | Official Site';
 const PAGE_DESCRIPTION =
   'The official site of the Sangguniang Bayan ng Lambunao — the legislative council of Lambunao, Iloilo. Read our resolutions, follow sessions, meet your council, and submit a query.';
@@ -71,18 +71,6 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-async function mintSignedUrl(
-  supabase: ReturnType<typeof createAdminClient>,
-  bucket: string,
-  path: string | null,
-): Promise<string | null> {
-  if (!path) return null;
-  const { data } = await supabase.storage
-    .from(bucket)
-    .createSignedUrl(path, SIGNED_URL_TTL_SECONDS);
-  return data?.signedUrl ?? null;
-}
-
 export default async function LandingPage() {
   const [featuredNews, upcomingMeetings, allPublicMembers, tenant] = await Promise.all([
     getFeaturedNews(3),
@@ -97,10 +85,14 @@ export default async function LandingPage() {
   const supabase = createAdminClient();
   const [newsCoverUrls, memberPhotoUrls] = await Promise.all([
     Promise.all(
-      featuredNews.map((post) => mintSignedUrl(supabase, 'news-covers', post.coverStoragePath)),
+      featuredNews.map((post) =>
+        createSignedStorageUrl(supabase, 'news-covers', post.coverStoragePath),
+      ),
     ),
     Promise.all(
-      previewMembers.map((m) => mintSignedUrl(supabase, 'sb-member-photos', m.photoStoragePath)),
+      previewMembers.map((m) =>
+        createSignedStorageUrl(supabase, 'sb-member-photos', m.photoStoragePath),
+      ),
     ),
   ]);
 

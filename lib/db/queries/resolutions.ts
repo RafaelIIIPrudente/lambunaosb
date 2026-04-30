@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { and, asc, desc, eq, ilike, isNull, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, ilike, isNull, or, sql } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import {
@@ -206,6 +206,55 @@ export async function getResolutionYears(): Promise<number[]> {
     .where(and(eq(resolutions.tenantId, tenantId), isNull(resolutions.deletedAt)))
     .orderBy(desc(resolutions.year));
   return rows.map((r) => r.year);
+}
+
+export type RecentSponsorship = {
+  kind: 'sponsored' | 'co_sponsored';
+  id: string;
+  number: string;
+  title: string;
+  publishedAt: Date | null;
+};
+
+export async function getRecentSponsorshipsByMember(
+  memberId: string,
+  limit = 5,
+): Promise<RecentSponsorship[]> {
+  const tenantId = await getCurrentTenantId();
+  const rows = await db
+    .select({
+      id: resolutions.id,
+      number: resolutions.number,
+      title: resolutions.title,
+      publishedAt: resolutions.publishedAt,
+      primarySponsorId: resolutions.primarySponsorId,
+    })
+    .from(resolutions)
+    .where(
+      and(
+        eq(resolutions.tenantId, tenantId),
+        isNull(resolutions.deletedAt),
+        eq(resolutions.status, 'published'),
+        or(
+          eq(resolutions.primarySponsorId, memberId),
+          sql`${memberId} = ANY(${resolutions.coSponsorIds})`,
+        ),
+      ),
+    )
+    .orderBy(
+      sql`${resolutions.publishedAt} DESC NULLS LAST`,
+      desc(resolutions.year),
+      desc(resolutions.sequenceNumber),
+    )
+    .limit(limit);
+
+  return rows.map((row) => ({
+    kind: row.primarySponsorId === memberId ? 'sponsored' : 'co_sponsored',
+    id: row.id,
+    number: row.number,
+    title: row.title,
+    publishedAt: row.publishedAt,
+  }));
 }
 
 export async function getResolutionSponsors(): Promise<
