@@ -53,6 +53,7 @@ async function getNotificationCounts(userId: string, role: string): Promise<Noti
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const { profile } = await requireUser();
   const notificationCounts = await getNotificationCounts(profile.id, profile.role);
+  const pendingCitizenQueries = notificationCounts.pendingQueries + notificationCounts.assignedToMe;
 
   return (
     <div data-surface="admin" className="bg-paper text-ink min-h-screen">
@@ -64,7 +65,11 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       </a>
       <TooltipProvider delayDuration={400}>
         <SidebarProvider>
-          <AdminSidebar fullName={profile.fullName} role={profile.role} />
+          <AdminSidebar
+            fullName={profile.fullName}
+            role={profile.role}
+            pendingCitizenQueries={pendingCitizenQueries}
+          />
           <SidebarInset className="bg-paper flex min-h-screen flex-col">
             <AdminTopbar notificationCounts={notificationCounts} role={profile.role} />
             <main id="admin-main" className="flex-1 px-6 py-6">

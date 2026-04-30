@@ -59,28 +59,35 @@ type NavItem = {
   restricted?: boolean;
 };
 
-const ITEMS: NavItem[] = [
-  { href: '/admin/dashboard', label: 'Dashboard', icon: Home },
-  { href: '/admin/meetings', label: 'Meetings', icon: Calendar },
-  { href: '/admin/resolutions', label: 'Resolutions', icon: FileText },
-  { href: '/admin/members', label: 'SB Members', icon: Users },
-  { href: '/admin/news', label: 'News', icon: Newspaper },
-  { href: '/admin/queries', label: 'Citizen Queries', icon: Inbox, badge: 4 },
-  { href: '/admin/audit', label: 'Audit Log', icon: ShieldCheck },
-  { href: '/admin/users', label: 'Users', icon: UserCircle, restricted: true },
-  { href: '/admin/settings', label: 'Settings', icon: Settings },
-];
-
 type AdminSidebarProps = {
   fullName: string;
   role: UserRole;
+  /** Citizen queries needing attention (unassigned + assigned-to-me, excluding closed/spam). */
+  pendingCitizenQueries: number;
 };
 
-export function AdminSidebar({ fullName, role }: AdminSidebarProps) {
+export function AdminSidebar({ fullName, role, pendingCitizenQueries }: AdminSidebarProps) {
   const pathname = usePathname();
   const [isPending, startTransition] = useTransition();
   const initials = computeInitials(fullName);
   const roleLabel = USER_ROLE_LABELS[role];
+
+  const items: NavItem[] = [
+    { href: '/admin/dashboard', label: 'Dashboard', icon: Home },
+    { href: '/admin/meetings', label: 'Meetings', icon: Calendar },
+    { href: '/admin/resolutions', label: 'Resolutions', icon: FileText },
+    { href: '/admin/members', label: 'SB Members', icon: Users },
+    { href: '/admin/news', label: 'News', icon: Newspaper },
+    {
+      href: '/admin/queries',
+      label: 'Citizen Queries',
+      icon: Inbox,
+      badge: pendingCitizenQueries > 0 ? pendingCitizenQueries : undefined,
+    },
+    { href: '/admin/audit', label: 'Audit Log', icon: ShieldCheck },
+    { href: '/admin/users', label: 'Users', icon: UserCircle, restricted: true },
+    { href: '/admin/settings', label: 'Settings', icon: Settings },
+  ];
 
   function handleSignOut() {
     startTransition(async () => {
@@ -117,7 +124,7 @@ export function AdminSidebar({ fullName, role }: AdminSidebarProps) {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu className="gap-0.5">
-              {ITEMS.map((item) => {
+              {items.map((item) => {
                 const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
                 const Icon = item.icon;
                 return (
@@ -129,7 +136,7 @@ export function AdminSidebar({ fullName, role }: AdminSidebarProps) {
                         {item.badge !== undefined && (
                           <span
                             className="bg-rust text-paper group-data-active/menu-button:bg-paper group-data-active/menu-button:text-rust inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-semibold tabular-nums"
-                            aria-label={`${item.badge} new`}
+                            aria-label={`${item.badge} pending`}
                           >
                             {item.badge}
                           </span>
