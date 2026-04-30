@@ -86,6 +86,9 @@ export function PublicFooter() {
             <Link href="/about#privacy" className="hover:text-navy-primary">
               Privacy notice (RA 10173)
             </Link>
+            <Link href="/login" className="hover:text-navy-primary">
+              Sign in
+            </Link>
           </div>
         </div>
       </div>

@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Globe, Menu } from 'lucide-react';
+import { Menu } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -22,12 +22,6 @@ const NAV_ITEMS = [
   { href: '/members', label: 'Members' },
   { href: '/about', label: 'About' },
   { href: '/submit-query', label: 'Submit a Query' },
-];
-
-const LOCALES = [
-  { code: 'en', label: 'English' },
-  { code: 'tl', label: 'Tagalog' },
-  { code: 'hil', label: 'Hiligaynon' },
 ];
 
 function isCurrent(pathname: string, href: string) {
@@ -80,36 +74,6 @@ export function PublicTopNav() {
                 );
               })}
             </nav>
-            <div className="border-ink/12 border-t p-6">
-              <p
-                id="mobile-locale-label"
-                className="text-ink-faint mb-3 font-mono text-xs font-medium tracking-[0.18em] uppercase"
-              >
-                Choose language
-              </p>
-              <div
-                role="group"
-                aria-labelledby="mobile-locale-label"
-                className="flex flex-col gap-1"
-              >
-                {LOCALES.map((locale) => (
-                  <button
-                    key={locale.code}
-                    type="button"
-                    aria-pressed={locale.code === 'en'}
-                    className={cn(
-                      'text-ink hover:bg-paper-2 inline-flex h-12 items-center justify-between rounded-md px-3 text-sm font-medium transition-colors',
-                      'aria-[pressed=true]:text-rust aria-[pressed=true]:font-semibold',
-                    )}
-                  >
-                    <span>{locale.label}</span>
-                    <span className="text-ink-faint font-mono text-[11px] tracking-wide uppercase">
-                      {locale.code}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
           </SheetContent>
         </Sheet>
 
@@ -155,17 +119,6 @@ export function PublicTopNav() {
             );
           })}
         </nav>
-
-        <div className="ml-auto flex items-center gap-2 lg:ml-3">
-          <button
-            type="button"
-            aria-label="Language: English. Choose another."
-            className="border-ink/40 text-ink hover:bg-paper-2 rounded-pill inline-flex h-9 items-center gap-1.5 border border-dashed px-3 text-xs font-medium transition-colors"
-          >
-            <Globe className="size-3.5" aria-hidden="true" />
-            <span className="font-mono tracking-wide">EN</span>
-          </button>
-        </div>
       </div>
     </header>
   );
