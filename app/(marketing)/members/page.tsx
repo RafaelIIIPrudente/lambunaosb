@@ -5,7 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 
-import { FadeUp } from '@/components/motion/fade-up';
+import { PageHero } from '@/components/marketing/page-hero';
 import { Stagger, StaggerItem } from '@/components/motion/stagger';
 import { ImagePlaceholder } from '@/components/ui/image-placeholder';
 import { env } from '@/env';
@@ -23,6 +23,14 @@ const POSITION_LABELS: Record<string, string> = {
   sk_chairperson: 'SK Chairperson',
   liga_president: 'Liga President',
   ipmr: 'IPMR',
+};
+
+const POSITION_ORDER: Record<string, number> = {
+  vice_mayor: 0,
+  sb_member: 8,
+  sk_chairperson: 2,
+  liga_president: 3,
+  ipmr: 4,
 };
 
 function deriveTermLabel(members: MemberCardData[]): string {
@@ -107,6 +115,12 @@ export default async function MembersPage() {
     if (url) memberPhotoById.set(m.id, url);
   });
 
+  const sortedMembers = [...members].sort((a, b) => {
+    const oa = POSITION_ORDER[a.position] ?? 99;
+    const ob = POSITION_ORDER[b.position] ?? 99;
+    return oa - ob;
+  });
+
   const term = deriveTermLabel(members);
   const sbMemberCount = members.filter((m) => m.position === 'sb_member').length;
   const hasViceMayor = members.some((m) => m.position === 'vice_mayor');
@@ -129,82 +143,103 @@ export default async function MembersPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }}
       />
-      <section className="mx-auto w-full max-w-[1200px] px-4 py-12 sm:px-8 md:py-16">
-        <FadeUp as="header" className="mb-12">
-          <p className="text-rust mb-3 font-mono text-[11px] font-medium tracking-[0.22em] uppercase">
-            Your council · {term}
-          </p>
-          <h1 className="text-ink font-display text-5xl font-bold tracking-tight md:text-6xl">
-            Meet your SB Members
-          </h1>
-          <p className="text-ink-soft font-script mt-6 max-w-2xl text-xl leading-snug">
-            {hasViceMayor
-              ? `The Sangguniang Bayan is composed of the Vice Mayor (presiding officer) and ${sbMemberCount} elected members who serve three-year terms.`
-              : `The Sangguniang Bayan is composed of ${sbMemberCount} elected members who serve three-year terms.`}
-          </p>
-        </FadeUp>
 
-        {members.length === 0 ? (
-          <div className="border-ink/15 bg-paper-2 rounded-md border p-8">
-            <p className="text-ink-soft font-script text-lg">
-              Council roster will appear here once members are seeded.
-            </p>
-          </div>
-        ) : (
-          <Stagger as="ul" className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {members.map((member) => {
-              const photoUrl = memberPhotoById.get(member.id);
-              return (
-                <StaggerItem as="li" key={member.id}>
-                  <article className="border-ink/30 hover:border-ink/50 hover:shadow-e1 bg-paper flex h-full flex-col gap-4 rounded-md border border-dashed p-4 transition-all hover:-translate-y-0.5">
-                    {photoUrl ? (
-                      <div className="bg-paper-2 relative aspect-square w-full overflow-hidden rounded-md">
-                        <Image
-                          src={photoUrl}
-                          alt={`Portrait of ${member.honorific} ${member.fullName}`}
-                          fill
-                          loading="lazy"
-                          sizes="(min-width: 1024px) 280px, 50vw"
-                          className="object-cover"
-                          unoptimized
-                        />
-                      </div>
-                    ) : (
-                      <ImagePlaceholder ratio="1:1" label={member.initials} />
-                    )}
-                    <div className="flex flex-col gap-2.5 px-1 pb-1">
-                      <p className="text-rust font-mono text-[10px] font-medium tracking-[0.18em] uppercase">
-                        {POSITION_LABELS[member.position]}
-                      </p>
-                      <h2 className="text-ink font-display text-xl leading-snug font-semibold">
-                        {member.honorific} {member.fullName}
-                      </h2>
-                      {member.committees.length > 0 && (
-                        <ul className="flex flex-wrap gap-1.5">
-                          {member.committees.map((committee) => (
-                            <li
-                              key={committee}
-                              className="border-ink/35 text-ink-soft rounded-pill inline-flex items-center border px-2 py-0.5 font-mono text-[10px] tracking-wide uppercase"
-                            >
-                              {committee}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                      <Link
-                        href={`/members/${member.id}`}
-                        className="border-ink/30 text-ink hover:border-ink hover:bg-paper-2 font-script rounded-pill mt-2 inline-flex h-9 w-fit items-center gap-1.5 border border-dashed px-4 text-sm transition-colors"
-                      >
-                        View profile
-                        <ArrowRight className="size-3.5" aria-hidden="true" />
-                      </Link>
-                    </div>
-                  </article>
-                </StaggerItem>
-              );
-            })}
-          </Stagger>
-        )}
+      <PageHero
+        src="/lambunao/plaza-church-2.png"
+        alt="The plaza of Lambunao — civic gathering place"
+        eyebrow={`Your council · ${term}`}
+        title={
+          <>
+            Meet your <em className="font-display italic">SB Members</em>.
+          </>
+        }
+        lede={
+          hasViceMayor
+            ? `Composed of the Vice Mayor (presiding officer) and ${sbMemberCount} elected members serving three-year terms.`
+            : `Composed of ${sbMemberCount} elected members serving three-year terms.`
+        }
+        caption="Plaza Rizal · Lambunao"
+      />
+
+      <section className="bg-paper">
+        <div className="mx-auto w-full max-w-[1240px] px-4 py-20 sm:px-8 md:py-28">
+          {sortedMembers.length === 0 ? (
+            <div className="border-ink/15 bg-paper-2 rounded-md border p-8">
+              <p className="text-ink-soft font-script text-lg">
+                Council roster will appear here once members are seeded.
+              </p>
+            </div>
+          ) : (
+            <Stagger
+              as="ul"
+              className="grid gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+            >
+              {sortedMembers.map((member) => {
+                const photoUrl = memberPhotoById.get(member.id);
+                return (
+                  <StaggerItem as="li" key={member.id}>
+                    <Link
+                      href={`/members/${member.id}`}
+                      className="group/member focus-visible:ring-rust block focus-visible:ring-2 focus-visible:outline-none"
+                    >
+                      <article className="flex h-full flex-col gap-4">
+                        <div className="border-ink/25 hover:border-ink/45 rounded-md border border-dashed p-1.5 transition-colors">
+                          {photoUrl ? (
+                            <div className="bg-paper-2 relative aspect-[3/4] w-full overflow-hidden rounded-md">
+                              <Image
+                                src={photoUrl}
+                                alt={`Portrait of ${member.honorific} ${member.fullName}`}
+                                fill
+                                loading="lazy"
+                                sizes="(min-width: 1280px) 280px, (min-width: 1024px) 33vw, 50vw"
+                                className="object-cover transition-transform duration-500 group-hover/member:scale-[1.02]"
+                                unoptimized
+                              />
+                            </div>
+                          ) : (
+                            <ImagePlaceholder ratio="3:4" label={member.initials} />
+                          )}
+                        </div>
+                        <div className="flex flex-col gap-2 px-1">
+                          <p className="text-rust font-mono text-[10px] font-medium tracking-[0.18em] uppercase">
+                            {POSITION_LABELS[member.position]}
+                          </p>
+                          <h2 className="text-ink font-display group-hover/member:text-rust text-xl leading-tight font-bold">
+                            {member.honorific} {member.fullName}
+                          </h2>
+                          {member.committees.length > 0 && (
+                            <ul className="mt-1 flex flex-wrap gap-1.5">
+                              {member.committees.slice(0, 3).map((committee) => (
+                                <li
+                                  key={committee}
+                                  className="border-ink/30 text-ink-soft rounded-pill inline-flex items-center border px-2.5 py-0.5 font-mono text-[10px] tracking-wide uppercase"
+                                >
+                                  {committee}
+                                </li>
+                              ))}
+                              {member.committees.length > 3 && (
+                                <li className="text-ink-faint font-mono text-[10px]">
+                                  +{member.committees.length - 3} more
+                                </li>
+                              )}
+                            </ul>
+                          )}
+                          <span className="font-script text-ink-faint group-hover/member:text-rust mt-3 inline-flex items-center gap-1 text-base transition-colors">
+                            View profile
+                            <ArrowRight
+                              className="size-3.5 transition-transform group-hover/member:translate-x-0.5"
+                              aria-hidden="true"
+                            />
+                          </span>
+                        </div>
+                      </article>
+                    </Link>
+                  </StaggerItem>
+                );
+              })}
+            </Stagger>
+          )}
+        </div>
       </section>
     </>
   );

@@ -2,6 +2,7 @@ import 'server-only';
 
 import type { Metadata } from 'next';
 
+import { DEFAULT_LAMBUNAO_SLIDES, PhotoCarousel } from '@/components/marketing/photo-carousel';
 import { FadeUp } from '@/components/motion/fade-up';
 import { Stagger, StaggerItem } from '@/components/motion/stagger';
 import { getCommittees } from '@/lib/db/queries/committees';
@@ -63,15 +64,23 @@ export default async function CommitteesPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }}
       />
-      <section className="mx-auto w-full max-w-[1200px] px-4 py-12 sm:px-8 md:py-16">
-        <FadeUp as="header" className="mb-12">
-          <p className="text-rust mb-3 font-mono text-[11px] font-medium tracking-[0.22em] uppercase">
-            Council structure
+
+      {/* Editorial type-led hero — committees is structural, not photographic */}
+      <section className="bg-paper-2 border-ink/12 border-b">
+        <FadeUp
+          as="div"
+          className="mx-auto w-full max-w-[1240px] px-4 pt-32 pb-20 sm:px-8 md:pt-40 md:pb-28"
+        >
+          <p className="text-rust mb-5 font-mono text-[11px] font-medium tracking-[0.22em] uppercase">
+            <span className="bg-gold mr-3 inline-block h-px w-8 align-middle" />
+            Council structure · {committees.length} committees
           </p>
-          <h1 className="text-ink font-display text-5xl font-bold tracking-tight md:text-6xl">
-            Committees
+          <h1 className="text-ink font-display text-6xl leading-[0.95] font-bold tracking-tight md:text-7xl lg:text-[96px]">
+            Where the work
+            <br />
+            <em className="font-display italic">happens</em>.
           </h1>
-          <p className="text-ink-soft font-script mt-6 max-w-2xl text-xl leading-snug">
+          <p className="text-navy-primary font-display mt-10 max-w-[58ch] text-xl leading-relaxed italic md:text-2xl">
             Resolutions and ordinances pass through committees before reaching the floor. The{' '}
             {tenant.displayName} maintains {standing.length} standing committee
             {standing.length === 1 ? '' : 's'} with continuing jurisdiction and {special.length}{' '}
@@ -79,7 +88,9 @@ export default async function CommitteesPage() {
             {special.length === 1 ? '' : 's'} convened for time-limited concerns.
           </p>
         </FadeUp>
+      </section>
 
+      <section className="mx-auto w-full max-w-[1240px] px-4 py-20 sm:px-8 md:py-28">
         {committees.length === 0 ? (
           <div className="border-ink/15 bg-paper-2 rounded-md border p-8">
             <p className="text-ink-soft font-script text-lg">
@@ -87,9 +98,17 @@ export default async function CommitteesPage() {
             </p>
           </div>
         ) : (
-          <div className="flex flex-col gap-16">
+          <div className="flex flex-col gap-20">
             <CommitteeGroup eyebrow="Standing" committees={standing} />
-            {special.length > 0 && <CommitteeGroup eyebrow="Special" committees={special} />}
+            {special.length > 0 && (
+              <>
+                <PhotoCarousel
+                  eyebrow="Mga eksena · between sessions"
+                  slides={DEFAULT_LAMBUNAO_SLIDES.slice(0, 4)}
+                />
+                <CommitteeGroup eyebrow="Special" committees={special} />
+              </>
+            )}
           </div>
         )}
       </section>
@@ -106,21 +125,32 @@ function CommitteeGroup({
 }) {
   return (
     <FadeUp as="section" aria-labelledby={`committees-${eyebrow.toLowerCase()}-heading`}>
-      <header className="border-ink/15 mb-6 flex items-baseline justify-between border-b pb-3">
+      <header className="border-ink/15 mb-10 flex items-baseline justify-between border-b pb-4">
         <h2
           id={`committees-${eyebrow.toLowerCase()}-heading`}
           className="text-rust font-mono text-[11px] font-semibold tracking-[0.22em] uppercase"
         >
+          <span className="bg-gold mr-3 inline-block h-px w-6 align-middle" />
           {eyebrow} · {committees.length}
         </h2>
+        <span className="text-ink-faint font-script text-lg italic">
+          {eyebrow === 'Standing' ? 'Continuing jurisdiction' : 'Time-limited'}
+        </span>
       </header>
-      <Stagger as="ul" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {committees.map((c) => (
+      <Stagger as="ul" className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {committees.map((c, idx) => (
           <StaggerItem as="li" key={c.id}>
-            <article className="border-ink/30 hover:border-ink/50 hover:shadow-e1 bg-paper flex h-full flex-col gap-2 rounded-md border border-dashed p-5 transition-all hover:-translate-y-0.5">
-              <h3 className="text-ink font-display text-lg leading-snug font-semibold">{c.name}</h3>
+            <article className="border-ink/30 hover:border-ink/55 hover:shadow-e1 bg-paper relative flex h-full flex-col gap-3 rounded-md border border-dashed p-6 transition-all hover:-translate-y-0.5">
+              <span className="text-ink-faint absolute top-4 right-5 font-mono text-[10px] tracking-[0.18em]">
+                №&nbsp;{String(idx + 1).padStart(2, '0')}
+              </span>
+              <h3 className="text-ink font-display max-w-[20ch] pr-12 text-xl leading-snug font-semibold">
+                {c.name}
+              </h3>
               {c.description && (
-                <p className="text-ink-soft text-sm leading-relaxed italic">{c.description}</p>
+                <p className="text-navy-primary font-display text-base leading-relaxed italic">
+                  {c.description}
+                </p>
               )}
             </article>
           </StaggerItem>
