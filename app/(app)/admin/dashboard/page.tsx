@@ -69,14 +69,14 @@ export default async function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <header>
+      <header className="min-w-0">
         <p className="text-ink-faint mb-2 font-mono text-[11px] tracking-[0.22em] uppercase">
           {format(now, 'EEE · d MMM yyyy')}
         </p>
-        <h1 className="text-ink font-script text-4xl leading-tight">
+        <h1 className="text-ink font-script text-4xl leading-tight break-words">
           {greetingPrefix(now)}, {firstName(ctx.profile.fullName)}.
         </h1>
-        <p className="text-ink-soft mt-1 text-sm italic">
+        <p className="text-ink-soft mt-1 text-sm break-words italic">
           {pendingCount === 0
             ? 'Inbox is clear. Quiet day ahead.'
             : pendingCount === 1
@@ -94,7 +94,7 @@ export default async function DashboardPage() {
           </CardEyebrow>
           {upcoming ? (
             <>
-              <CardTitle className="font-script text-3xl">{upcoming.title}</CardTitle>
+              <CardTitle className="font-script text-3xl break-words">{upcoming.title}</CardTitle>
               <CardDescription>
                 {format(upcoming.date, 'EEEE · h:mm a')} · {upcoming.type.replace(/_/g, ' ')}{' '}
                 session.
@@ -196,7 +196,7 @@ export default async function DashboardPage() {
           <CardEyebrow>Recent resolution</CardEyebrow>
           {recentResolution ? (
             <>
-              <CardTitle>
+              <CardTitle className="break-words">
                 {recentResolution.number} · {recentResolution.title}
               </CardTitle>
               <CardDescription>
@@ -255,7 +255,7 @@ export default async function DashboardPage() {
                   <span className="text-ink-faint mt-0.5 font-mono text-[11px] tabular-nums">
                     {format(event.createdAt, 'HH:mm')}
                   </span>
-                  <span className="leading-snug">
+                  <span className="min-w-0 leading-snug break-words">
                     <span className="text-ink font-semibold">{event.actorName ?? 'System'}</span>{' '}
                     {humanizeAction(event.action)}{' '}
                     <span className="font-mono text-[12px]">

@@ -24,8 +24,8 @@ export function AdminPageHeader({
         className,
       )}
     >
-      <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-ink font-script text-3xl">{title}</h1>
+      <div className="flex min-w-0 flex-wrap items-center gap-3">
+        <h1 className="text-ink font-script min-w-0 text-3xl break-words">{title}</h1>
         {pills && pills.length > 0 && (
           <ul role="group" aria-label={`Filter ${title}`} className="flex flex-wrap gap-1.5">
             {pills.map((pill) => (

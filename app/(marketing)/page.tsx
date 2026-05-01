@@ -314,15 +314,15 @@ export default async function LandingPage() {
                   className="text-rust bg-paper absolute -top-4 -left-4 size-9 rounded-full p-1.5"
                   aria-hidden="true"
                 />
-                <h2 className="text-ink font-display text-3xl leading-snug font-bold md:text-4xl">
+                <h2 className="text-ink font-display text-3xl leading-snug font-bold break-words md:text-4xl">
                   {upcomingMeeting.title}
                 </h2>
                 <p className="text-navy-primary font-display flex flex-wrap items-center gap-x-2 gap-y-1 text-2xl italic">
                   {format(new Date(upcomingMeeting.date), 'EEEE, d MMMM yyyy · h:mm a')}
                 </p>
-                <p className="text-ink-soft flex items-center gap-2 font-mono text-sm">
-                  <MapPin className="text-ink-faint size-4" aria-hidden="true" />
-                  {upcomingMeeting.location}
+                <p className="text-ink-soft flex items-start gap-2 font-mono text-sm break-words">
+                  <MapPin className="text-ink-faint mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                  <span className="min-w-0 break-words">{upcomingMeeting.location}</span>
                 </p>
               </article>
             ) : (
@@ -371,10 +371,10 @@ export default async function LandingPage() {
             <Stagger as="div" className="grid gap-8 lg:grid-cols-[1.4fr_1fr]">
               {/* Lead story */}
               {leadNews && (
-                <StaggerItem>
+                <StaggerItem className="min-w-0">
                   <Link
                     href={`/news/${leadNews.slug}`}
-                    className="group/news focus-visible:ring-rust flex h-full flex-col gap-5 focus-visible:ring-2 focus-visible:outline-none"
+                    className="group/news focus-visible:ring-rust flex h-full min-w-0 flex-col gap-5 focus-visible:ring-2 focus-visible:outline-none"
                   >
                     {newsCoverByPostId.get(leadNews.id) ? (
                       <div className="bg-paper-2 border-ink/15 relative aspect-[16/10] w-full overflow-hidden rounded-md border">
@@ -391,15 +391,15 @@ export default async function LandingPage() {
                     ) : (
                       <ImagePlaceholder ratio="16:9" />
                     )}
-                    <div className="flex flex-col gap-3">
+                    <div className="flex min-w-0 flex-col gap-3">
                       <p className="text-rust font-mono text-[11px] font-medium tracking-[0.22em] uppercase">
                         {CATEGORY_LABELS[leadNews.category] ?? leadNews.category}
                       </p>
-                      <h3 className="text-ink font-display group-hover/news:text-rust max-w-[22ch] text-3xl leading-snug font-bold md:text-4xl">
+                      <h3 className="text-ink font-display group-hover/news:text-rust max-w-[22ch] text-3xl leading-snug font-bold break-words md:text-4xl">
                         {leadNews.title}
                       </h3>
                       {leadNews.excerpt && (
-                        <p className="text-navy-primary font-display max-w-[60ch] text-lg leading-relaxed italic">
+                        <p className="text-navy-primary font-display max-w-[60ch] text-lg leading-relaxed break-words italic">
                           {leadNews.excerpt}
                         </p>
                       )}
@@ -413,7 +413,7 @@ export default async function LandingPage() {
               )}
 
               {/* Secondary stack */}
-              <StaggerItem className="flex flex-col gap-6">
+              <StaggerItem className="flex min-w-0 flex-col gap-6">
                 {secondaryNews.map((post, idx) => {
                   const coverUrl = newsCoverByPostId.get(post.id);
                   return (
@@ -421,7 +421,7 @@ export default async function LandingPage() {
                       key={post.id}
                       href={`/news/${post.slug}`}
                       className={cn(
-                        'group/news border-ink/15 hover:border-ink/35 focus-visible:ring-rust grid grid-cols-[112px_1fr] gap-4 rounded-md border-t pt-6 transition-colors focus-visible:ring-2 focus-visible:outline-none sm:grid-cols-[160px_1fr]',
+                        'group/news border-ink/15 hover:border-ink/35 focus-visible:ring-rust grid min-w-0 grid-cols-[112px_1fr] gap-4 rounded-md border-t pt-6 transition-colors focus-visible:ring-2 focus-visible:outline-none sm:grid-cols-[160px_1fr]',
                         idx === 0 && 'border-t-0 pt-0',
                       )}
                     >
@@ -440,11 +440,11 @@ export default async function LandingPage() {
                       ) : (
                         <ImagePlaceholder ratio="1:1" />
                       )}
-                      <div className="flex flex-col gap-2">
+                      <div className="flex min-w-0 flex-col gap-2">
                         <p className="text-rust font-mono text-[10px] font-medium tracking-[0.18em] uppercase">
                           {CATEGORY_LABELS[post.category] ?? post.category}
                         </p>
-                        <h3 className="text-ink font-display group-hover/news:text-rust text-base leading-snug font-semibold md:text-lg">
+                        <h3 className="text-ink font-display group-hover/news:text-rust text-base leading-snug font-semibold break-words md:text-lg">
                           {post.title}
                         </h3>
                         <p className="text-ink-faint font-mono text-[11px]">
@@ -492,10 +492,10 @@ export default async function LandingPage() {
             <Stagger as="div" className="grid gap-10 lg:grid-cols-[300px_1fr] lg:gap-12">
               {/* Lead member */}
               {leadMember && (
-                <StaggerItem>
+                <StaggerItem className="min-w-0">
                   <Link
                     href={`/members/${leadMember.id}`}
-                    className="group/lead border-ink/25 hover:border-ink/45 focus-visible:ring-rust bg-paper relative flex flex-col gap-4 rounded-md border border-dashed p-1.5 transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                    className="group/lead border-ink/25 hover:border-ink/45 focus-visible:ring-rust bg-paper relative flex min-w-0 flex-col gap-4 rounded-md border border-dashed p-1.5 transition-colors focus-visible:ring-2 focus-visible:outline-none"
                   >
                     {memberPhotoById.get(leadMember.id) ? (
                       <div className="bg-paper-2 relative aspect-[3/4] w-full overflow-hidden rounded-md">
@@ -512,15 +512,15 @@ export default async function LandingPage() {
                     ) : (
                       <ImagePlaceholder ratio="3:4" label={leadMember.initials} />
                     )}
-                    <div className="flex flex-col gap-1.5 px-3 pb-4">
+                    <div className="flex min-w-0 flex-col gap-1.5 px-3 pb-4">
                       <p className="text-rust font-mono text-[10px] font-medium tracking-[0.22em] uppercase">
                         {POSITION_LABELS[leadMember.position] ?? leadMember.position}
                       </p>
-                      <h3 className="text-ink font-display group-hover/lead:text-rust text-2xl leading-tight font-bold">
+                      <h3 className="text-ink font-display group-hover/lead:text-rust text-2xl leading-tight font-bold break-words">
                         {leadMember.honorific} {leadMember.fullName}
                       </h3>
                       {leadMember.committees.length > 0 && (
-                        <p className="text-ink-soft font-display line-clamp-2 text-sm leading-relaxed italic">
+                        <p className="text-ink-soft font-display line-clamp-2 text-sm leading-relaxed break-words italic">
                           {leadMember.committees.slice(0, 2).join(' · ')}
                         </p>
                       )}
@@ -530,14 +530,14 @@ export default async function LandingPage() {
               )}
 
               {/* Side members */}
-              <StaggerItem className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:content-start">
+              <StaggerItem className="grid min-w-0 grid-cols-2 gap-5 sm:grid-cols-3 lg:content-start">
                 {sideMembers.map((member) => {
                   const photoUrl = memberPhotoById.get(member.id);
                   return (
                     <Link
                       key={member.id}
                       href={`/members/${member.id}`}
-                      className="group/member border-ink/25 hover:border-ink/45 focus-visible:ring-rust bg-paper flex h-full flex-col gap-3 rounded-md border border-dashed p-1.5 transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                      className="group/member border-ink/25 hover:border-ink/45 focus-visible:ring-rust bg-paper flex h-full min-w-0 flex-col gap-3 rounded-md border border-dashed p-1.5 transition-colors focus-visible:ring-2 focus-visible:outline-none"
                     >
                       {photoUrl ? (
                         <div className="bg-paper-2 relative aspect-[3/4] w-full overflow-hidden rounded-md">
@@ -554,11 +554,11 @@ export default async function LandingPage() {
                       ) : (
                         <ImagePlaceholder ratio="3:4" label={member.initials} />
                       )}
-                      <div className="flex flex-col gap-1 px-3 pb-3">
+                      <div className="flex min-w-0 flex-col gap-1 px-3 pb-3">
                         <p className="text-rust font-mono text-[10px] font-medium tracking-[0.18em] uppercase">
                           {POSITION_LABELS[member.position] ?? member.position}
                         </p>
-                        <h3 className="text-ink font-display group-hover/member:text-rust text-base leading-snug font-semibold">
+                        <h3 className="text-ink font-display group-hover/member:text-rust text-base leading-snug font-semibold break-words">
                           {member.honorific} {member.fullName}
                         </h3>
                       </div>

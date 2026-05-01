@@ -226,7 +226,7 @@ export default async function NewsAdminPage({
                     )}
                   </div>
 
-                  <div className="flex flex-col gap-2">
+                  <div className="flex min-w-0 flex-col gap-2">
                     <div className="flex flex-wrap items-center gap-1.5">
                       <Badge variant={STATUS_BADGE_VARIANT[post.status]}>
                         {NEWS_STATUS_LABELS[post.status]}
@@ -243,13 +243,15 @@ export default async function NewsAdminPage({
 
                     <Link
                       href={`/admin/news/${post.id}`}
-                      className="text-ink hover:text-rust focus-visible:ring-rust/40 font-display rounded text-lg leading-snug font-semibold outline-none focus-visible:ring-2"
+                      className="text-ink hover:text-rust focus-visible:ring-rust/40 font-display rounded text-lg leading-snug font-semibold break-words outline-none focus-visible:ring-2"
                     >
                       {post.title}
                     </Link>
 
                     {post.excerpt && (
-                      <p className="text-ink-soft line-clamp-2 text-sm italic">{post.excerpt}</p>
+                      <p className="text-ink-soft line-clamp-2 text-sm break-words italic">
+                        {post.excerpt}
+                      </p>
                     )}
 
                     <div className="text-ink-faint mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px]">

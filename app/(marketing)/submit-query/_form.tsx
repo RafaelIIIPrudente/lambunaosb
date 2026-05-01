@@ -209,7 +209,7 @@ export function SubmitQueryForm() {
               aria-required="true"
               className="accent-rust mt-1 size-4 shrink-0"
             />
-            <span className="text-navy-primary font-display text-sm leading-relaxed italic">
+            <span className="text-navy-primary font-display min-w-0 text-sm leading-relaxed break-words italic">
               By submitting, you consent to the LGU storing your name and email only to respond to
               this query, per the Data Privacy Act of 2012 (RA 10173). Your message may be redacted
               before any public summary.

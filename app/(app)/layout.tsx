@@ -49,6 +49,16 @@ async function getNotificationCounts(userId: string, role: string): Promise<Noti
  * Admin route-group layout — operational chrome.
  * Sets data-surface="admin" so primitives select the dense / Inter-only variants.
  * Brief §1.2 + §4.15.
+ *
+ * Mobile-overflow rules (verify at 375 / 390 / 414 px before merging):
+ * 1. <body> in app/layout.tsx has overflow-x-clip — DO NOT remove without a sweep.
+ * 2. <main> below has min-w-0 so list rows / cards / tables can shrink to track size.
+ * 3. Admin density is intentional — list pages use truncate (single-line + ellipsis)
+ *    instead of break-words to keep dense rows scannable. Card titles, dashboard
+ *    titles, and detail-page text use break-words to handle long inputs.
+ * 4. Tables (resolutions, meetings) render only at md+ (`hidden md:table`); on
+ *    mobile they fall back to <ul> list rows. DO NOT introduce raw <table> at
+ *    sm: or smaller without an overflow-x-auto wrapper.
  */
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const { profile } = await requireUser();
@@ -72,7 +82,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
           />
           <SidebarInset className="bg-paper flex min-h-screen flex-col">
             <AdminTopbar notificationCounts={notificationCounts} role={profile.role} />
-            <main id="admin-main" className="flex-1 px-6 py-6">
+            <main id="admin-main" className="min-w-0 flex-1 px-4 py-6 sm:px-6">
               {children}
             </main>
             <AdminStatusBar />

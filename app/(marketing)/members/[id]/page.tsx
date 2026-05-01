@@ -271,7 +271,7 @@ export default async function MemberDetailPage({ params }: { params: Promise<{ i
                 <span className="bg-gold mr-3 inline-block h-px w-8 align-middle" />
                 {eyebrowParts.join(' · ')}
               </p>
-              <h1 className="text-ink font-display text-5xl leading-[0.95] font-bold tracking-tight md:text-6xl lg:text-7xl">
+              <h1 className="text-ink font-display text-5xl leading-[0.95] font-bold tracking-tight break-words md:text-6xl lg:text-7xl">
                 {fullName}
               </h1>
             </StaggerItem>
@@ -285,9 +285,9 @@ export default async function MemberDetailPage({ params }: { params: Promise<{ i
                   {member.committeeAssignments.map((assignment) => (
                     <li
                       key={assignment.committee.id}
-                      className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-3"
+                      className="flex min-w-0 flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-3"
                     >
-                      <span className="text-navy-primary font-display text-lg leading-snug italic">
+                      <span className="text-navy-primary font-display text-lg leading-snug break-words italic">
                         {assignment.committee.name}
                       </span>
                       <span
@@ -313,7 +313,7 @@ export default async function MemberDetailPage({ params }: { params: Promise<{ i
                 Biography
               </p>
               {member.bioMd && member.bioMd.trim().length > 0 ? (
-                <div className="prose-bio text-navy-primary font-display max-w-[60ch] text-lg leading-relaxed italic">
+                <div className="prose-bio text-navy-primary font-display max-w-[60ch] text-lg leading-relaxed break-words italic">
                   <MDXRemote
                     source={member.bioMd}
                     options={{ mdxOptions: { remarkPlugins: [remarkGfm] } }}
@@ -333,12 +333,12 @@ export default async function MemberDetailPage({ params }: { params: Promise<{ i
                   {sponsorships.map((s) => (
                     <li
                       key={s.id}
-                      className="grid grid-cols-[110px_1fr_auto] items-baseline gap-4 py-3 text-sm"
+                      className="grid min-w-0 grid-cols-[110px_1fr_auto] items-baseline gap-4 py-3 text-sm"
                     >
                       <span className="font-script text-ink-soft text-base italic">
                         {SPONSORSHIP_KIND_LABELS[s.kind]}
                       </span>
-                      <span className="text-navy-primary font-display italic">
+                      <span className="text-navy-primary font-display min-w-0 break-words italic">
                         {s.number} — {s.title}
                       </span>
                       <span className="text-ink-faint font-mono text-xs">

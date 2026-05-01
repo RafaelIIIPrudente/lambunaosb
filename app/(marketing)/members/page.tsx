@@ -178,12 +178,12 @@ export default async function MembersPage() {
               {sortedMembers.map((member) => {
                 const photoUrl = memberPhotoById.get(member.id);
                 return (
-                  <StaggerItem as="li" key={member.id}>
+                  <StaggerItem as="li" key={member.id} className="min-w-0">
                     <Link
                       href={`/members/${member.id}`}
-                      className="group/member focus-visible:ring-rust block focus-visible:ring-2 focus-visible:outline-none"
+                      className="group/member focus-visible:ring-rust block min-w-0 focus-visible:ring-2 focus-visible:outline-none"
                     >
-                      <article className="flex h-full flex-col gap-4">
+                      <article className="flex h-full min-w-0 flex-col gap-4">
                         <div className="border-ink/25 hover:border-ink/45 rounded-md border border-dashed p-1.5 transition-colors">
                           {photoUrl ? (
                             <div className="bg-paper-2 relative aspect-[3/4] w-full overflow-hidden rounded-md">
@@ -201,11 +201,11 @@ export default async function MembersPage() {
                             <ImagePlaceholder ratio="3:4" label={member.initials} />
                           )}
                         </div>
-                        <div className="flex flex-col gap-2 px-1">
+                        <div className="flex min-w-0 flex-col gap-2 px-1">
                           <p className="text-rust font-mono text-[10px] font-medium tracking-[0.18em] uppercase">
                             {POSITION_LABELS[member.position]}
                           </p>
-                          <h2 className="text-ink font-display group-hover/member:text-rust text-xl leading-tight font-bold">
+                          <h2 className="text-ink font-display group-hover/member:text-rust text-xl leading-tight font-bold break-words">
                             {member.honorific} {member.fullName}
                           </h2>
                           {member.committees.length > 0 && (
@@ -213,7 +213,7 @@ export default async function MembersPage() {
                               {member.committees.slice(0, 3).map((committee) => (
                                 <li
                                   key={committee}
-                                  className="border-ink/30 text-ink-soft rounded-pill inline-flex items-center border px-2.5 py-0.5 font-mono text-[10px] tracking-wide uppercase"
+                                  className="border-ink/30 text-ink-soft rounded-pill inline-flex items-center border px-2.5 py-0.5 font-mono text-[10px] tracking-wide break-words uppercase"
                                 >
                                   {committee}
                                 </li>

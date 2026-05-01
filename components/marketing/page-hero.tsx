@@ -51,11 +51,11 @@ export function PageHero({
           <span className="bg-gold mr-3 inline-block h-px w-8 align-middle" />
           {eyebrow}
         </p>
-        <h1 className="text-paper font-display max-w-[18ch] text-[clamp(40px,7vw,84px)] leading-[1.0] font-bold tracking-tight">
+        <h1 className="text-paper font-display max-w-[18ch] text-[clamp(40px,7vw,84px)] leading-[1.0] font-bold tracking-tight break-words">
           {title}
         </h1>
         {lede && (
-          <p className="text-paper/90 font-script mt-6 max-w-[44ch] text-xl leading-snug md:text-2xl">
+          <p className="text-paper/90 font-script mt-6 max-w-[44ch] text-xl leading-snug break-words md:text-2xl">
             {lede}
           </p>
         )}

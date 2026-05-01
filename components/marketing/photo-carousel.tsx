@@ -105,7 +105,7 @@ export function PhotoCarousel({
       onFocus={onFocus}
       onBlur={onBlur}
       className={cn(
-        'relative mx-auto w-full max-w-[1240px] px-4 py-20 sm:px-8 md:py-28',
+        'relative mx-auto w-full max-w-[1240px] overflow-x-clip px-4 py-20 sm:px-8 md:py-28',
         'focus-visible:outline-none',
         className,
       )}
@@ -160,11 +160,11 @@ export function PhotoCarousel({
 
           {/* Caption */}
           <div aria-live="polite" aria-atomic="true" className="min-h-[5.5rem]">
-            <p className="font-script text-ink-soft text-2xl leading-snug md:text-3xl">
+            <p className="font-script text-ink-soft text-2xl leading-snug break-words md:text-3xl">
               {current.caption}
             </p>
             {current.location && (
-              <p className="text-ink-faint mt-2 font-mono text-[11px] tracking-[0.18em] uppercase">
+              <p className="text-ink-faint mt-2 font-mono text-[11px] tracking-[0.18em] break-words uppercase">
                 {current.location}
               </p>
             )}

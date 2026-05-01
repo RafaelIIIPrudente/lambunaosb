@@ -104,10 +104,10 @@ export default function SubmitQueryPage() {
               <span className="bg-gold mr-3 inline-block h-px w-8 align-middle" />
               We read every message
             </p>
-            <h1 className="text-ink font-display text-5xl leading-[1.0] font-bold tracking-tight md:text-6xl lg:text-7xl">
+            <h1 className="text-ink font-display text-5xl leading-[1.0] font-bold tracking-tight break-words md:text-6xl lg:text-7xl">
               Submit a <em className="font-display italic">query</em>.
             </h1>
-            <p className="text-navy-primary font-display mt-6 max-w-[44ch] text-xl leading-relaxed italic md:text-2xl">
+            <p className="text-navy-primary font-display mt-6 max-w-[44ch] text-xl leading-relaxed break-words italic md:text-2xl">
               Question, suggestion, complaint, or request for a public document. Replies are usually
               sent within 1–3 business days.
             </p>

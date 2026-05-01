@@ -59,7 +59,10 @@ export default function RootLayout({
       className={`${inter.variable} ${fraunces.variable} ${caveat.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body
-        className="bg-paper text-ink flex min-h-full flex-col"
+        // overflow-x-clip kills horizontal page bleed site-wide while preserving
+        // position:sticky on the top nav. Removing this class will reintroduce
+        // mobile overflow regressions — re-sweep marketing surfaces if you do.
+        className="bg-paper text-ink flex min-h-full flex-col overflow-x-clip"
         // Grammarly + similar extensions inject data-* attrs on <body> after SSR.
         // Suppress only the body's own-attribute hydration check; children still hydrate strictly.
         suppressHydrationWarning

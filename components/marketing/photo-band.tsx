@@ -38,7 +38,7 @@ export function PhotoBand({ src, alt, caption, eyebrow, height = 'md', className
           </span>
         )}
         {caption && (
-          <p className="text-paper font-script max-w-[40ch] text-2xl leading-snug md:text-3xl">
+          <p className="text-paper font-script max-w-[40ch] text-2xl leading-snug break-words md:text-3xl">
             {caption}
           </p>
         )}
