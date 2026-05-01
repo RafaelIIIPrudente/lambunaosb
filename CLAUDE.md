@@ -79,6 +79,15 @@ Push the boundary as far down as possible. A Client `<Button>` inside a Server `
 - **Server actions** (`'use server'`): default for all UI-originated mutations.
 - **Route handlers** (`app/api/**/route.ts`): webhooks (raw body access), OAuth callbacks, non-Next API consumers, and AI streaming endpoints that need raw `Response` control.
 
+### Auth onboarding paths
+
+Two onboarding paths coexist by design:
+
+1. **Public sign-up** (`/sign-up`) — anyone can register. The `on_auth_user_created` trigger creates a profile with `role='pending'` and `active=false`. The Secretary approves via `/admin/users?invitation=pending_approval`, picking a real role; this flips `active=true` and assigns the role. Use this for the general flow and for officials who can self-onboard.
+2. **Secretary-initiated invite** (`InviteUserDialog` on `/admin/users`) — the Secretary pre-creates an account with role + email already chosen. Skips the pending queue. Use for known officials onboarded out-of-band when the Secretary wants the role pre-locked.
+
+Both paths converge to the same `profiles` row shape; both write `audit_log_entries`. Pending users (`role='pending'` OR `active=false`) cannot reach `/admin/*` — middleware redirects to `/pending`.
+
 ### Supabase auth patterns
 
 - Use `@supabase/ssr` exclusively. Never `@supabase/auth-helpers-nextjs` (deprecated).

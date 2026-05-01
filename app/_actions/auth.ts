@@ -2,12 +2,15 @@
 
 import 'server-only';
 
+import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 import { env } from '@/env';
 import { db } from '@/lib/db';
 import { profiles } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { checkRateLimit, SIGNUP_PER_EMAIL, SIGNUP_PER_IP } from '@/lib/security/rate-limit';
+import { verifyTurnstile } from '@/lib/security/turnstile';
 import { writeAudit } from '@/lib/services/audit';
 import { createClient } from '@/lib/supabase/server';
 import { ok, err, type Result } from '@/lib/types/result';
@@ -15,6 +18,7 @@ import {
   resetPasswordRequestSchema,
   setNewPasswordSchema,
   signInSchema,
+  signUpSchema,
 } from '@/lib/validators/auth';
 
 export async function signIn(raw: unknown): Promise<Result<never>> {
@@ -146,6 +150,105 @@ export async function requestPasswordReset(raw: unknown): Promise<Result<void>> 
     });
   }
   return ok(undefined);
+}
+
+export async function signUp(raw: unknown): Promise<Result<{ userId: string }>> {
+  const parsed = signUpSchema.safeParse(raw);
+  if (!parsed.success) {
+    return err(parsed.error.issues[0]?.message ?? 'Invalid input.', 'E_VALIDATION');
+  }
+
+  const hdrs = await headers();
+  const ip =
+    hdrs.get('x-forwarded-for')?.split(',')[0]?.trim() ?? hdrs.get('x-real-ip') ?? 'unknown';
+  const emailNorm = parsed.data.email.trim().toLowerCase();
+
+  const captchaOk = await verifyTurnstile(parsed.data.turnstileToken, ip);
+  if (!captchaOk) {
+    await writeAudit({
+      actorId: null,
+      actorRole: null,
+      action: 'auth.signup_failed',
+      category: 'security',
+      targetType: 'auth',
+      targetId: emailNorm,
+      alert: true,
+      ipInet: ip,
+      metadata: { email: emailNorm, reason: 'captcha_failed' },
+    });
+    return err('Captcha verification failed. Please try again.', 'E_CAPTCHA');
+  }
+
+  const ipLimit = checkRateLimit(`signup:ip:${ip}`, SIGNUP_PER_IP.max, SIGNUP_PER_IP.windowMs);
+  const emailLimit = checkRateLimit(
+    `signup:email:${emailNorm}`,
+    SIGNUP_PER_EMAIL.max,
+    SIGNUP_PER_EMAIL.windowMs,
+  );
+  if (!ipLimit.success || !emailLimit.success) {
+    await writeAudit({
+      actorId: null,
+      actorRole: null,
+      action: 'auth.signup_rate_limited',
+      category: 'security',
+      targetType: 'auth',
+      targetId: emailNorm,
+      alert: true,
+      ipInet: ip,
+      metadata: {
+        email: emailNorm,
+        ip_limited: !ipLimit.success,
+        email_limited: !emailLimit.success,
+      },
+    });
+    return err(
+      'Too many sign-up attempts. Please wait a few minutes and try again.',
+      'E_RATE_LIMITED',
+    );
+  }
+
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase.auth.signUp({
+      email: emailNorm,
+      password: parsed.data.password,
+      options: { data: { full_name: parsed.data.fullName.trim() } },
+    });
+
+    if (error || !data.user) {
+      await writeAudit({
+        actorId: null,
+        actorRole: null,
+        action: 'auth.signup_failed',
+        category: 'security',
+        targetType: 'auth',
+        targetId: emailNorm,
+        alert: true,
+        ipInet: ip,
+        metadata: { email: emailNorm, reason: error?.message ?? 'unknown' },
+      });
+      // Don't surface raw Supabase error — could enumerate existing emails.
+      return err(
+        'Could not create your account. The email may already be registered, or the password may be too weak.',
+        'E_SIGNUP_FAILED',
+      );
+    }
+
+    // The on_auth_user_created trigger has now inserted a profile in pending state.
+    await writeAudit({
+      actorId: data.user.id,
+      actorRole: 'pending',
+      action: 'auth.signup_succeeded',
+      category: 'security',
+      targetType: 'profile',
+      targetId: data.user.id,
+      ipInet: ip,
+      metadata: { email: emailNorm, fullName: parsed.data.fullName.trim() },
+    });
+    return ok({ userId: data.user.id });
+  } catch (e) {
+    return err(e instanceof Error ? e.message : 'Sign-up failed.', 'E_UNKNOWN');
+  }
 }
 
 export async function setNewPassword(raw: unknown): Promise<Result<void>> {

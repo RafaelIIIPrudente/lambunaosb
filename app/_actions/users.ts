@@ -14,6 +14,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { writeAudit } from '@/lib/services/audit';
 import { ok, err, type Result } from '@/lib/types/result';
 import {
+  approvePendingUserSchema,
   deactivateUserSchema,
   inviteUserSchema,
   reactivateUserSchema,
@@ -88,6 +89,67 @@ export async function inviteUser(raw: unknown): Promise<Result<{ userId: string 
     return ok({ userId: data.user.id });
   } catch (e) {
     return err(e instanceof Error ? e.message : 'Failed to invite user.', 'E_UNKNOWN');
+  }
+}
+
+export async function approvePendingUser(raw: unknown): Promise<Result<void>> {
+  const parsed = approvePendingUserSchema.safeParse(raw);
+  if (!parsed.success) {
+    return err(parsed.error.issues[0]?.message ?? 'Invalid input.', 'E_VALIDATION');
+  }
+
+  if (parsed.data.role === 'pending') {
+    return err('Cannot approve a user with the pending role.', 'E_VALIDATION');
+  }
+
+  const ctx = await getAuthContext();
+  if (!ctx) return err('You must be signed in.', 'E_UNAUTHORIZED');
+  if (ctx.profile.role !== 'secretary') {
+    return err('Only the Secretary can approve users.', 'E_FORBIDDEN');
+  }
+
+  try {
+    const tenantId = await getCurrentTenantId();
+    const [target] = await db
+      .select({ role: profiles.role, active: profiles.active, email: profiles.email })
+      .from(profiles)
+      .where(and(eq(profiles.tenantId, tenantId), eq(profiles.id, parsed.data.userId)))
+      .limit(1);
+
+    if (!target) return err('User not found.', 'E_NOT_FOUND');
+    if (target.role !== 'pending') {
+      return err('User is not in pending state.', 'E_NOT_PENDING');
+    }
+
+    await db
+      .update(profiles)
+      .set({
+        role: parsed.data.role,
+        active: true,
+        memberId: parsed.data.memberId ?? null,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(profiles.tenantId, tenantId), eq(profiles.id, parsed.data.userId)));
+
+    await writeAudit({
+      actorId: ctx.userId,
+      actorRole: ctx.profile.role,
+      action: 'user.approved',
+      category: 'user',
+      targetType: 'profile',
+      targetId: parsed.data.userId,
+      alert: true,
+      metadata: {
+        email: target.email,
+        roleAssigned: parsed.data.role,
+        memberIdLinked: parsed.data.memberId ?? null,
+      },
+    });
+
+    revalidatePath('/admin/users');
+    return ok(undefined);
+  } catch (e) {
+    return err(e instanceof Error ? e.message : 'Failed to approve user.', 'E_UNKNOWN');
   }
 }
 

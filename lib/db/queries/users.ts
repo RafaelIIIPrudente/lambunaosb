@@ -49,6 +49,7 @@ function buildUserConditions(tenantId: string, options: GetUsersOptions): SQL[] 
   if (options.activity === 'inactive') conditions.push(eq(profiles.active, false));
   if (options.invitation === 'accepted') conditions.push(isNotNull(profiles.lastSignInAt));
   if (options.invitation === 'pending') conditions.push(isNull(profiles.lastSignInAt));
+  if (options.invitation === 'pending_approval') conditions.push(eq(profiles.role, 'pending'));
   if (options.q && options.q.trim().length > 0) {
     const needle = `%${options.q.trim()}%`;
     const orMatch = or(ilike(profiles.fullName, needle), ilike(profiles.email, needle));
@@ -121,6 +122,7 @@ export type UserStatusCounts = {
   active: number;
   inactive: number;
   pending: number;
+  pendingApproval: number;
 };
 
 export async function getUserStatusCounts(): Promise<UserStatusCounts> {
@@ -130,7 +132,8 @@ export async function getUserStatusCounts(): Promise<UserStatusCounts> {
       total: sql<number>`count(*)::int`,
       active: sql<number>`count(*) filter (where ${profiles.active} = true)::int`,
       inactive: sql<number>`count(*) filter (where ${profiles.active} = false)::int`,
-      pending: sql<number>`count(*) filter (where ${profiles.lastSignInAt} is null and ${profiles.active} = true)::int`,
+      pending: sql<number>`count(*) filter (where ${profiles.lastSignInAt} is null and ${profiles.active} = true and ${profiles.role} <> 'pending')::int`,
+      pendingApproval: sql<number>`count(*) filter (where ${profiles.role} = 'pending')::int`,
     })
     .from(profiles)
     .where(eq(profiles.tenantId, tenantId));
@@ -140,6 +143,7 @@ export async function getUserStatusCounts(): Promise<UserStatusCounts> {
     active: Number(row?.active ?? 0),
     inactive: Number(row?.inactive ?? 0),
     pending: Number(row?.pending ?? 0),
+    pendingApproval: Number(row?.pendingApproval ?? 0),
   };
 }
 

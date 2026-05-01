@@ -1,17 +1,17 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 
-import { LoginForm } from './_form';
+import { SignUpForm } from './_form';
 
 export const metadata = {
-  title: 'Sign in',
-  description: 'Sign in to the SB Lambunao admin console.',
+  title: 'Create account',
+  description: 'Request access to the SB Lambunao admin console.',
 };
 
-export default function LoginPage() {
+export default function SignUpPage() {
   return (
     <div className="grid min-h-screen lg:grid-cols-[1.2fr_1fr]">
-      {/* LEFT — rust panel: brand + tagline + system list */}
       <aside className="bg-rust text-paper relative flex flex-col justify-between p-10 lg:p-16">
         <header className="flex items-center gap-3">
           <span
@@ -30,43 +30,43 @@ export default function LoginPage() {
 
         <div className="hidden lg:block">
           <p className="font-script text-5xl leading-[1.1]">
-            Council operations,
+            Request access,
             <br />
-            in one place.
+            then we approve.
           </p>
           <p className="text-paper/85 mt-6 max-w-sm font-mono text-xs leading-relaxed tracking-wide">
-            Meetings · resolutions · citizen queries · audit trail.
-            <br />
-            Authorized officials only.
+            Accounts land in a pending queue. The Secretariat reviews and assigns your role before
+            your console unlocks.
           </p>
         </div>
 
         <p className="text-paper/60 hidden font-mono text-[10px] tracking-wide lg:block">
-          v1.0 · [TL] · [HIL] available · GovCloud PH
+          v1.0 · authorized officials only
         </p>
       </aside>
 
-      {/* RIGHT — sign-in form */}
       <main className="flex items-center justify-center p-8 lg:p-12">
         <div className="w-full max-w-sm">
+          <Link
+            href="/login"
+            className="text-ink-faint hover:text-rust mb-6 inline-flex items-center gap-1.5 font-mono text-xs"
+          >
+            <ArrowLeft className="size-3" aria-hidden="true" />
+            Back to sign in
+          </Link>
+
           <p className="text-rust mb-2 font-mono text-[11px] font-medium tracking-[0.22em] uppercase">
-            Sign in
+            Sign up
           </p>
-          <h1 className="text-ink font-script text-4xl font-medium">Welcome back</h1>
+          <h1 className="text-ink font-script text-4xl font-medium">Create your account</h1>
+          <p className="text-ink-soft mt-3 text-sm leading-relaxed italic">
+            Fill in your details below. The Secretariat will review your request and assign your
+            role before you can access the admin console.
+          </p>
 
-          <Suspense fallback={<div className="mt-8 h-64" aria-hidden="true" />}>
-            <LoginForm />
+          <Suspense fallback={<div className="mt-8 h-96" aria-hidden="true" />}>
+            <SignUpForm />
           </Suspense>
-
-          <p className="text-ink-soft mt-6 text-sm leading-relaxed">
-            Don&apos;t have an account?{' '}
-            <Link href="/sign-up" className="text-rust font-script text-base hover:underline">
-              Request access
-            </Link>
-            <span className="text-ink-faint mt-1 block font-mono text-[11px] tracking-wide italic">
-              The Secretariat reviews and assigns roles before access unlocks.
-            </span>
-          </p>
         </div>
       </main>
     </div>
