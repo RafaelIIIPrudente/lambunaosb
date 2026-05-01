@@ -46,6 +46,7 @@ const ROLE_BADGE_VARIANT: Record<UserRole, 'success' | 'outline' | 'warn' | 'des
     skmf_president: 'outline',
     liga_president: 'outline',
     other_lgu: 'outline',
+    pending: 'new',
   };
 
 function buildHref(base: UserFilterInput, patch: Partial<UserFilterInput>): string {
@@ -137,10 +138,16 @@ export default async function UsersPage({
         accessory={
           <div className="flex items-center gap-3">
             <span className="text-ink-faint font-mono text-[11px] tracking-wide">
+              {statusCounts.pendingApproval > 0 && (
+                <Link
+                  href="/admin/users?invitation=pending_approval"
+                  className="text-rust mr-3 font-semibold hover:underline"
+                >
+                  {statusCounts.pendingApproval} awaiting approval ·
+                </Link>
+              )}
               {statusCounts.pending > 0 && (
-                <span className="text-rust mr-3 font-semibold">
-                  {statusCounts.pending} pending ·
-                </span>
+                <span className="text-ink-soft mr-3">{statusCounts.pending} invite-pending ·</span>
               )}
               {statusCounts.active} active · {statusCounts.inactive} inactive
             </span>

@@ -8,6 +8,10 @@ export const USER_ROLES = [
   'skmf_president',
   'liga_president',
   'other_lgu',
+  // Sentinel for self-signup-with-pending-approval. New sign-ups land here
+  // until a Secretary approves them. Filter out of role pickers via
+  // ASSIGNABLE_ROLES (see _row-actions.tsx).
+  'pending',
 ] as const;
 
 export type UserRole = (typeof USER_ROLES)[number];
@@ -26,6 +30,7 @@ export const USER_ROLE_LABELS: Record<UserRole, string> = {
   skmf_president: 'SKMF President',
   liga_president: 'Liga President',
   other_lgu: 'Other LGU',
+  pending: 'Pending approval',
 };
 
 export const USER_ROLE_DESCRIPTIONS: Record<UserRole, string> = {
@@ -38,6 +43,7 @@ export const USER_ROLE_DESCRIPTIONS: Record<UserRole, string> = {
   liga_president:
     'Read everything · edit own profile · co-sponsor as ex-officio barangay representative.',
   other_lgu: 'Read-only access for inter-office coordination.',
+  pending: 'New sign-up awaiting role assignment by the Secretary.',
 };
 
 export const inviteUserSchema = z.object({
@@ -58,6 +64,14 @@ export const updateUserRoleSchema = z.object({
 });
 
 export type UpdateUserRoleInput = z.infer<typeof updateUserRoleSchema>;
+
+export const approvePendingUserSchema = z.object({
+  userId: z.uuid(),
+  role: z.enum(USER_ROLES),
+  memberId: z.uuid().optional(),
+});
+
+export type ApprovePendingUserInput = z.infer<typeof approvePendingUserSchema>;
 
 export const deactivateUserSchema = z.object({
   userId: z.uuid(),
@@ -86,13 +100,14 @@ export const USER_ACTIVITY_LABELS: Record<UserActivityFilter, string> = {
   inactive: 'Inactive',
 };
 
-export const USER_INVITATION_FILTERS = ['all', 'accepted', 'pending'] as const;
+export const USER_INVITATION_FILTERS = ['all', 'accepted', 'pending', 'pending_approval'] as const;
 export type UserInvitationFilter = (typeof USER_INVITATION_FILTERS)[number];
 
 export const USER_INVITATION_LABELS: Record<UserInvitationFilter, string> = {
   all: 'Any invitation status',
   accepted: 'Accepted (signed in)',
-  pending: 'Pending (never signed in)',
+  pending: 'Pending invite (never signed in)',
+  pending_approval: 'Pending approval (signed up, awaiting role)',
 };
 
 export type UserFilterInput = {

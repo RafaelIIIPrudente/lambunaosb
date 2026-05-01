@@ -34,3 +34,29 @@ export const setNewPasswordSchema = z
   });
 
 export type SetNewPasswordInput = z.infer<typeof setNewPasswordSchema>;
+
+export const signUpSchema = z
+  .object({
+    fullName: z
+      .string()
+      .min(2, 'Full name must be at least 2 characters.')
+      .max(180, 'Full name must be at most 180 characters.'),
+    email: z.email('Please enter a valid email address.'),
+    password: z
+      .string()
+      .min(12, 'Password must be at least 12 characters.')
+      .regex(/[0-9]/, 'Password must contain at least one number.')
+      .regex(/[A-Z]/, 'Password must contain at least one uppercase letter.')
+      .regex(/[a-z]/, 'Password must contain at least one lowercase letter.'),
+    confirmPassword: z.string(),
+    acceptTerms: z.literal(true, {
+      message: 'You must agree to the data privacy notice (RA 10173) before signing up.',
+    }),
+    turnstileToken: z.string().optional(),
+  })
+  .refine((d) => d.password === d.confirmPassword, {
+    message: 'Passwords do not match.',
+    path: ['confirmPassword'],
+  });
+
+export type SignUpInput = z.infer<typeof signUpSchema>;

@@ -11,6 +11,11 @@ export const userRole = pgEnum('user_role', [
   'skmf_president',
   'liga_president',
   'other_lgu',
+  // Sentinel for self-signup-with-pending-approval. Pending users have
+  // role='pending' AND active=false until a Secretary approves them via
+  // /admin/users; on approval, role flips to a real value AND active=true.
+  // The middleware/require-user gate is: active=true AND role!='pending'.
+  'pending',
 ]);
 
 export const profiles = pgTable('profiles', {

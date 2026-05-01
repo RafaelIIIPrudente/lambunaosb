@@ -2,9 +2,15 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { AlertTriangle, MailIcon, Pencil, Trash2, Undo2 } from 'lucide-react';
+import { AlertTriangle, Check, MailIcon, Pencil, Trash2, Undo2 } from 'lucide-react';
 
-import { deactivateUser, reactivateUser, resendInvite, updateUserRole } from '@/app/_actions/users';
+import {
+  approvePendingUser,
+  deactivateUser,
+  reactivateUser,
+  resendInvite,
+  updateUserRole,
+} from '@/app/_actions/users';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,7 +39,13 @@ type Props = {
   hasSignedIn: boolean;
 };
 
-type ActionState = 'idle' | 'change_role' | 'deactivate' | 'reactivate' | 'resend';
+type ActionState = 'idle' | 'approve' | 'change_role' | 'deactivate' | 'reactivate' | 'resend';
+
+// Roles assignable to a real user — excludes the `pending` sentinel.
+const ASSIGNABLE_ROLES = USER_ROLES.filter((r) => r !== 'pending') as Exclude<
+  UserRole,
+  'pending'
+>[];
 
 export function UserRowActions({ userId, fullName, email, role, active, hasSignedIn }: Props) {
   const router = useRouter();
@@ -61,19 +73,35 @@ export function UserRowActions({ userId, fullName, email, role, active, hasSigne
     });
   }
 
+  const isPendingApproval = role === 'pending';
+
   return (
     <div className="flex items-center justify-end gap-1">
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        aria-label={`Change role for ${fullName}`}
-        onClick={() => setOpen('change_role')}
-        disabled={isPending}
-      >
-        <Pencil />
-      </Button>
+      {isPendingApproval ? (
+        <Button
+          variant="default"
+          size="sm"
+          aria-label={`Approve ${fullName}`}
+          onClick={() => setOpen('approve')}
+          disabled={isPending}
+          className="font-medium"
+        >
+          <Check />
+          Approve
+        </Button>
+      ) : (
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label={`Change role for ${fullName}`}
+          onClick={() => setOpen('change_role')}
+          disabled={isPending}
+        >
+          <Pencil />
+        </Button>
+      )}
 
-      {!active && (
+      {!active && !isPendingApproval && (
         <Button
           variant="ghost"
           size="icon-sm"
@@ -85,7 +113,7 @@ export function UserRowActions({ userId, fullName, email, role, active, hasSigne
         </Button>
       )}
 
-      {active && !hasSignedIn && (
+      {active && !hasSignedIn && !isPendingApproval && (
         <Button
           variant="ghost"
           size="icon-sm"
@@ -97,7 +125,7 @@ export function UserRowActions({ userId, fullName, email, role, active, hasSigne
         </Button>
       )}
 
-      {active && (
+      {active && !isPendingApproval && (
         <Button
           variant="ghost"
           size="icon-sm"
@@ -109,6 +137,16 @@ export function UserRowActions({ userId, fullName, email, role, active, hasSigne
           <Trash2 />
         </Button>
       )}
+
+      <ApproveDialog
+        open={open === 'approve'}
+        onClose={close}
+        fullName={fullName}
+        email={email}
+        isPending={isPending}
+        error={error}
+        onConfirm={(role) => runAction(approvePendingUser({ userId, role }))}
+      />
 
       <ChangeRoleDialog
         open={open === 'change_role'}
@@ -203,7 +241,7 @@ function ChangeRoleDialog({
               onChange={(e) => setNext(e.target.value as UserRole)}
               disabled={isPending}
             >
-              {USER_ROLES.map((r) => (
+              {ASSIGNABLE_ROLES.map((r) => (
                 <option key={r} value={r}>
                   {USER_ROLE_LABELS[r]}
                 </option>
@@ -393,6 +431,83 @@ function DeactivateDialog({
               className="bg-warn text-paper hover:bg-warn/85 font-medium"
             >
               {isPending ? 'Deactivating…' : 'Deactivate user'}
+            </Button>
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
+function ApproveDialog({
+  open,
+  onClose,
+  fullName,
+  email,
+  isPending,
+  error,
+  onConfirm,
+}: DialogProps & {
+  fullName: string;
+  email: string;
+  onConfirm: (role: Exclude<UserRole, 'pending'>) => void;
+}) {
+  const [next, setNext] = useState<Exclude<UserRole, 'pending'>>('sb_member');
+
+  return (
+    <AlertDialog
+      open={open}
+      onOpenChange={(o) => {
+        if (!o) {
+          onClose();
+          setNext('sb_member');
+        }
+      }}
+    >
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Approve {fullName}</AlertDialogTitle>
+          <AlertDialogDescription>
+            <span className="font-mono text-[11px] tracking-wide">{email}</span> signed up and is
+            awaiting approval. Pick the role they should have, then approve. They will be able to
+            sign in immediately. This action is alert-audited.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+
+        <div className="flex flex-col gap-3">
+          <Field label="Assign role" required>
+            <FieldSelect
+              value={next}
+              onChange={(e) => setNext(e.target.value as Exclude<UserRole, 'pending'>)}
+              disabled={isPending}
+            >
+              {ASSIGNABLE_ROLES.map((r) => (
+                <option key={r} value={r}>
+                  {USER_ROLE_LABELS[r]}
+                </option>
+              ))}
+            </FieldSelect>
+            <p className="text-ink-faint mt-1.5 text-xs italic">{USER_ROLE_DESCRIPTIONS[next]}</p>
+          </Field>
+          {error && (
+            <p role="alert" className="text-warn text-sm font-medium">
+              {error}
+            </p>
+          )}
+        </div>
+
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
+          <AlertDialogAction asChild>
+            <Button
+              disabled={isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                onConfirm(next);
+              }}
+              className="font-medium"
+            >
+              {isPending ? 'Approving…' : 'Approve & assign role'}
             </Button>
           </AlertDialogAction>
         </AlertDialogFooter>
