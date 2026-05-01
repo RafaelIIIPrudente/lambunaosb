@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/PC/.agents/skills/supabase/**)",
+      "Read(//c/Users/PC/.agents/skills/supabase-postgres-best-practices/**)",
+      "mcp__supabase__list_tables",
+      "mcp__supabase__get_advisors",
+      "mcp__supabase__execute_sql",
+      "Bash(echo \"EXIT=$?\")",
+      "mcp__supabase__list_projects"
+    ]
+  }
+}
