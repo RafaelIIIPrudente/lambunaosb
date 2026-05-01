@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils';
 import { safeBuildtimeQuery } from '@/lib/db/queries/_safe';
 import { getAllMemberIds, getMemberById, type CommitteeMembership } from '@/lib/db/queries/members';
 import { getRecentSponsorshipsByMember } from '@/lib/db/queries/resolutions';
-import { getCurrentTenant } from '@/lib/db/queries/tenant';
+import { FALLBACK_TENANT, getCurrentTenant } from '@/lib/db/queries/tenant';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getCompressedImageUrl, pickSizeForSurface } from '@/lib/upload/storage-url';
 
@@ -71,7 +71,10 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const [member, tenant] = await Promise.all([getMemberById(id), getCurrentTenant()]);
+  const [member, tenant] = await Promise.all([
+    safeBuildtimeQuery(() => getMemberById(id), null),
+    safeBuildtimeQuery(() => getCurrentTenant(), FALLBACK_TENANT),
+  ]);
   if (!member) {
     return {
       title: `Member not found · ${tenant.displayName}`,
@@ -131,12 +134,12 @@ export async function generateMetadata({
 
 export default async function MemberDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const member = await getMemberById(id);
+  const member = await safeBuildtimeQuery(() => getMemberById(id), null);
   if (!member || !member.showOnPublic) notFound();
 
   const [tenant, sponsorships] = await Promise.all([
-    getCurrentTenant(),
-    getRecentSponsorshipsByMember(member.id, 5),
+    safeBuildtimeQuery(() => getCurrentTenant(), FALLBACK_TENANT),
+    safeBuildtimeQuery(() => getRecentSponsorshipsByMember(member.id, 5), []),
   ]);
 
   const supabase = createAdminClient();

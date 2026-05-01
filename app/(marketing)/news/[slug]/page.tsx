@@ -16,7 +16,7 @@ import { NewsSharePrint } from '@/components/marketing/news-share-print';
 import { env } from '@/env';
 import { safeBuildtimeQuery } from '@/lib/db/queries/_safe';
 import { getAllPublishedNewsSlugs, getNewsBySlug, type NewsCategory } from '@/lib/db/queries/news';
-import { getCurrentTenant } from '@/lib/db/queries/tenant';
+import { FALLBACK_TENANT, getCurrentTenant } from '@/lib/db/queries/tenant';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getCompressedImageUrl, pickSizeForSurface } from '@/lib/upload/storage-url';
 
@@ -66,7 +66,10 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const [post, tenant] = await Promise.all([getNewsBySlug(slug), getCurrentTenant()]);
+  const [post, tenant] = await Promise.all([
+    safeBuildtimeQuery(() => getNewsBySlug(slug), null),
+    safeBuildtimeQuery(() => getCurrentTenant(), FALLBACK_TENANT),
+  ]);
   if (!post) {
     return {
       title: `Post not found · ${tenant.displayName}`,
@@ -120,7 +123,7 @@ export async function generateMetadata({
 
 export default async function NewsPostPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const post = await getNewsBySlug(slug);
+  const post = await safeBuildtimeQuery(() => getNewsBySlug(slug), null);
   if (!post) notFound();
 
   const supabase = createAdminClient();
