@@ -12,9 +12,9 @@ import remarkGfm from 'remark-gfm';
 import { FadeUp } from '@/components/motion/fade-up';
 import { Stagger, StaggerItem } from '@/components/motion/stagger';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { ImagePlaceholder } from '@/components/ui/image-placeholder';
 import { env } from '@/env';
+import { cn } from '@/lib/utils';
 import { safeBuildtimeQuery } from '@/lib/db/queries/_safe';
 import { getAllMemberIds, getMemberById, type CommitteeMembership } from '@/lib/db/queries/members';
 import { getRecentSponsorshipsByMember } from '@/lib/db/queries/resolutions';
@@ -277,15 +277,23 @@ export default async function MemberDetailPage({ params }: { params: Promise<{ i
                 Committees
               </p>
               {member.committeeAssignments.length > 0 ? (
-                <ul className="flex flex-wrap gap-2">
+                <ul className="divide-ink/15 divide-y divide-dashed">
                   {member.committeeAssignments.map((assignment) => (
-                    <li key={assignment.committee.id}>
-                      <Badge
-                        variant={assignment.role === 'chair' ? 'destructive' : 'outline'}
-                        className="h-7 px-3"
+                    <li
+                      key={assignment.committee.id}
+                      className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-3"
+                    >
+                      <span className="text-navy-primary font-display text-lg leading-snug italic">
+                        {assignment.committee.name}
+                      </span>
+                      <span
+                        className={cn(
+                          'font-mono text-[11px] font-medium tracking-[0.16em] uppercase',
+                          assignment.role === 'chair' ? 'text-rust' : 'text-ink-soft',
+                        )}
                       >
-                        {assignment.committee.name} ({ROLE_LABELS[assignment.role]})
-                      </Badge>
+                        {ROLE_LABELS[assignment.role]}
+                      </span>
                     </li>
                   ))}
                 </ul>
