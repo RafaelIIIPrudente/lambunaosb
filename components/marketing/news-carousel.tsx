@@ -25,7 +25,7 @@ type Props = {
 };
 
 const ARROW_BASE =
-  'absolute top-1/2 -translate-y-1/2 inline-flex size-10 items-center justify-center rounded-full border border-ink/15 bg-paper/85 text-ink shadow-e1 transition-colors hover:bg-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rust';
+  'absolute top-1/2 -translate-y-1/2 inline-flex size-11 items-center justify-center rounded-full border border-ink/15 bg-paper/85 text-ink shadow-e1 transition-colors hover:bg-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rust';
 
 export function NewsCarousel({ images, title }: Props) {
   const reduce = useReducedMotion();
@@ -111,7 +111,7 @@ export function NewsCarousel({ images, title }: Props) {
       </div>
 
       {activeAlt && (
-        <figcaption className="text-ink-faint mt-3 font-mono text-xs italic">
+        <figcaption className="text-ink-faint mt-3 font-mono text-xs break-words italic">
           {activeAlt}
         </figcaption>
       )}

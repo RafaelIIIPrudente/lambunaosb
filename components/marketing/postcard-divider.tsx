@@ -52,9 +52,9 @@ export function PostcardDivider({
           </div>
         </div>
         <figcaption className="flex items-center gap-3">
-          <span className="bg-ink/30 h-px w-10" aria-hidden="true" />
-          <p className="font-script text-ink-soft text-2xl md:text-3xl">{caption}</p>
-          <span className="bg-ink/30 h-px w-10" aria-hidden="true" />
+          <span className="bg-ink/30 h-px w-10 shrink-0" aria-hidden="true" />
+          <p className="font-script text-ink-soft text-2xl break-words md:text-3xl">{caption}</p>
+          <span className="bg-ink/30 h-px w-10 shrink-0" aria-hidden="true" />
         </figcaption>
       </figure>
     </FadeUp>

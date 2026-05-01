@@ -9,7 +9,7 @@ type Props = {
 };
 
 const BUTTON_CLASS =
-  'border-ink/30 text-ink hover:bg-paper-2 font-script rounded-pill inline-flex h-9 items-center gap-1.5 border border-dashed px-3.5 text-sm transition-colors';
+  'border-ink/30 text-ink hover:bg-paper-2 font-script rounded-pill inline-flex h-11 items-center gap-1.5 border border-dashed px-4 text-sm transition-colors';
 
 export function NewsSharePrint({ title, url }: Props) {
   const [copied, setCopied] = useState(false);

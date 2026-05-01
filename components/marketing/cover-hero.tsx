@@ -62,7 +62,7 @@ export function CoverHero({ src, alt, eyebrow, headline, dateline, children, cla
           initial={reduce ? false : { opacity: 0, y: 24 }}
           animate={reduce ? undefined : { opacity: 1, y: 0 }}
           transition={{ duration: 0.9, delay: 0.35, ease: [0.2, 0.8, 0.2, 1] }}
-          className="text-paper font-display max-w-[14ch] text-[clamp(48px,9vw,112px)] leading-[0.95] font-bold tracking-tight"
+          className="text-paper font-display max-w-[14ch] text-[clamp(48px,9vw,112px)] leading-[0.95] font-bold tracking-tight break-words"
         >
           {headline}
         </motion.h1>
@@ -72,7 +72,7 @@ export function CoverHero({ src, alt, eyebrow, headline, dateline, children, cla
             initial={reduce ? false : { opacity: 0, y: 16 }}
             animate={reduce ? undefined : { opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.65, ease: [0.2, 0.8, 0.2, 1] }}
-            className="font-script text-paper/95 mt-7 max-w-[34ch] text-2xl leading-snug md:text-3xl"
+            className="font-script text-paper/95 mt-7 max-w-[34ch] text-2xl leading-snug break-words md:text-3xl"
           >
             {dateline}
           </motion.p>

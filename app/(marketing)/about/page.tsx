@@ -145,7 +145,7 @@ export default async function AboutPage() {
                   Office
                 </p>
                 {tenant.officeAddress ? (
-                  <p className="text-navy-primary font-display text-base leading-relaxed whitespace-pre-line italic">
+                  <p className="text-navy-primary font-display text-base leading-relaxed break-words whitespace-pre-line italic">
                     {tenant.officeAddress}
                   </p>
                 ) : (
@@ -161,22 +161,22 @@ export default async function AboutPage() {
                       <span className="font-display italic">{tenant.contactPhone}</span>
                     </li>
                   )}
-                  <li className="flex items-center gap-2.5">
+                  <li className="flex min-w-0 items-center gap-2.5">
                     <Mail className="size-3.5 shrink-0" aria-hidden="true" />
                     <a
                       href={`mailto:${tenant.contactEmail}`}
-                      className="text-navy-primary font-display italic hover:underline"
+                      className="text-navy-primary font-display min-w-0 break-words italic hover:underline"
                     >
                       {tenant.contactEmail}
                     </a>
                   </li>
-                  <li className="flex items-center gap-2.5">
+                  <li className="flex min-w-0 items-center gap-2.5">
                     <FacebookIcon className="size-3.5 shrink-0" aria-hidden="true" />
                     <a
                       href={SOCIAL_LINKS.facebook}
                       target="_blank"
                       rel="noreferrer noopener"
-                      className="text-navy-primary font-display italic hover:underline"
+                      className="text-navy-primary font-display min-w-0 break-words italic hover:underline"
                     >
                       facebook.com/lambunaoipadayaw
                     </a>
@@ -252,13 +252,13 @@ export default async function AboutPage() {
             <span className="bg-rust mr-3 inline-block h-px w-8 align-middle" />
             Data Privacy Act notice
           </p>
-          <p className="text-navy-primary font-display max-w-4xl text-lg leading-relaxed italic md:text-xl">
+          <p className="text-navy-primary font-display max-w-4xl text-lg leading-relaxed break-words italic md:text-xl">
             In accordance with the Data Privacy Act of 2012 (RA 10173), the LGU collects only the
             personal information necessary to fulfill its mandate. Submitted queries store name +
             email, retained for {RETENTION_YEARS} years. You may request deletion at{' '}
             <a
               href={`mailto:${tenant.dpoEmail}`}
-              className="text-rust font-medium not-italic hover:underline"
+              className="text-rust font-medium break-words not-italic hover:underline"
             >
               {tenant.dpoEmail}
             </a>

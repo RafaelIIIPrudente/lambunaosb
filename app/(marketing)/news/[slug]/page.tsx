@@ -242,11 +242,11 @@ export default async function NewsPostPage({ params }: { params: Promise<{ slug:
               <span className="bg-gold mr-3 inline-block h-px w-8 align-middle" />
               {CATEGORY_LABELS[post.category]}
             </p>
-            <h1 className="text-ink font-display text-4xl leading-[1.05] font-bold tracking-tight md:text-5xl lg:text-6xl">
+            <h1 className="text-ink font-display text-4xl leading-[1.05] font-bold tracking-tight break-words md:text-5xl lg:text-6xl">
               {post.title}
             </h1>
             {post.excerpt && (
-              <p className="text-navy-primary font-display mt-6 max-w-[55ch] text-xl leading-relaxed italic md:text-2xl">
+              <p className="text-navy-primary font-display mt-6 max-w-[55ch] text-xl leading-relaxed break-words italic md:text-2xl">
                 {post.excerpt}
               </p>
             )}
@@ -262,8 +262,8 @@ export default async function NewsPostPage({ params }: { params: Promise<{ slug:
                   {initials}
                 </span>
               )}
-              <div className="flex flex-col leading-tight">
-                <span className="font-script text-ink text-base">{post.author}</span>
+              <div className="flex min-w-0 flex-col leading-tight">
+                <span className="font-script text-ink text-base break-words">{post.author}</span>
                 <span className="text-ink-faint mt-0.5 font-mono text-[11px]">
                   Posted {format(new Date(post.publishedAt), 'MMM d, yyyy')} · {readingMinutes} min
                   read
@@ -286,7 +286,7 @@ export default async function NewsPostPage({ params }: { params: Promise<{ slug:
         {hasBody ? (
           <FadeUp
             as="div"
-            className="text-navy-primary font-display prose-news mt-12 flex flex-col gap-6 text-xl leading-relaxed italic md:text-[22px]"
+            className="text-navy-primary font-display prose-news mt-12 flex flex-col gap-6 text-xl leading-relaxed break-words italic md:text-[22px]"
           >
             <MDXRemote
               source={post.bodyMdx}
@@ -296,7 +296,7 @@ export default async function NewsPostPage({ params }: { params: Promise<{ slug:
         ) : post.excerpt ? (
           <FadeUp
             as="p"
-            className="text-navy-primary font-display mt-10 text-lg leading-relaxed italic"
+            className="text-navy-primary font-display mt-10 text-lg leading-relaxed break-words italic"
           >
             {post.excerpt}
           </FadeUp>

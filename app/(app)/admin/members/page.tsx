@@ -127,11 +127,11 @@ export default async function MembersAdminPage() {
                       </span>
                     )}
                   </div>
-                  <div className="mt-3 flex flex-1 flex-col gap-1.5">
-                    <h3 className="text-ink font-display text-base font-semibold">
+                  <div className="mt-3 flex min-w-0 flex-1 flex-col gap-1.5">
+                    <h3 className="text-ink font-display text-base font-semibold break-words">
                       {m.honorific} {m.fullName}
                     </h3>
-                    <p className="text-rust font-mono text-[10px] tracking-[0.16em] uppercase">
+                    <p className="text-rust font-mono text-[10px] tracking-[0.16em] break-words uppercase">
                       {MEMBER_POSITION_LABELS[m.position]} · {m.termStartYear}–{m.termEndYear}
                     </p>
                     <div className="mt-1 flex flex-wrap gap-1">

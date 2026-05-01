@@ -31,7 +31,7 @@ const CATEGORY_LABELS: Record<NewsCategory, string> = {
 const CATEGORY_KEYS = Object.keys(CATEGORY_LABELS) as NewsCategory[];
 
 const FILTER_BASE_CLASS =
-  'font-script rounded-pill inline-flex h-10 items-center border px-5 text-base transition-colors';
+  'font-script rounded-pill inline-flex h-11 items-center border px-5 text-base transition-colors';
 const FILTER_ACTIVE_CLASS = 'bg-ink text-paper border-ink';
 const FILTER_INACTIVE_CLASS = 'border-ink/30 text-ink hover:border-ink hover:bg-paper-2';
 
@@ -186,7 +186,7 @@ export default async function NewsPage({
                 <FadeUp as="article" className="border-ink/15 mb-16 border-b pb-16">
                   <Link
                     href={`/news/${leadPost.slug}`}
-                    className="group/lead focus-visible:ring-rust grid gap-8 focus-visible:ring-2 focus-visible:outline-none lg:grid-cols-[1.3fr_1fr] lg:gap-12"
+                    className="group/lead focus-visible:ring-rust grid min-w-0 gap-8 focus-visible:ring-2 focus-visible:outline-none lg:grid-cols-[1.3fr_1fr] lg:gap-12"
                   >
                     {coverByPostId.get(leadPost.id) ? (
                       <div className="bg-paper-2 border-ink/15 relative aspect-[16/10] w-full overflow-hidden rounded-md border">
@@ -203,16 +203,16 @@ export default async function NewsPage({
                     ) : (
                       <ImagePlaceholder ratio="16:9" />
                     )}
-                    <div className="flex flex-col justify-center gap-4">
+                    <div className="flex min-w-0 flex-col justify-center gap-4">
                       <p className="text-rust font-mono text-[11px] font-medium tracking-[0.22em] uppercase">
                         <span className="bg-gold mr-3 inline-block h-px w-6 align-middle" />
                         Lead · {CATEGORY_LABELS[leadPost.category]}
                       </p>
-                      <h2 className="text-ink font-display group-hover/lead:text-rust max-w-[20ch] text-4xl leading-tight font-bold tracking-tight md:text-5xl">
+                      <h2 className="text-ink font-display group-hover/lead:text-rust max-w-[20ch] text-4xl leading-tight font-bold tracking-tight break-words md:text-5xl">
                         {leadPost.title}
                       </h2>
                       {leadPost.excerpt && (
-                        <p className="text-navy-primary font-display max-w-[55ch] text-lg leading-relaxed italic md:text-xl">
+                        <p className="text-navy-primary font-display max-w-[55ch] text-lg leading-relaxed break-words italic md:text-xl">
                           {leadPost.excerpt}
                         </p>
                       )}
@@ -234,11 +234,11 @@ export default async function NewsPage({
                 {(category ? items : restPosts).map((post) => {
                   const coverUrl = coverByPostId.get(post.id);
                   return (
-                    <StaggerItem as="li" key={post.id}>
-                      <article className="flex h-full flex-col gap-4">
+                    <StaggerItem as="li" key={post.id} className="min-w-0">
+                      <article className="flex h-full min-w-0 flex-col gap-4">
                         <Link
                           href={`/news/${post.slug}`}
-                          className="group/news focus-visible:ring-rust block focus-visible:ring-2 focus-visible:outline-none"
+                          className="group/news focus-visible:ring-rust block min-w-0 focus-visible:ring-2 focus-visible:outline-none"
                         >
                           {coverUrl ? (
                             <div className="bg-paper-2 border-ink/15 relative aspect-[4/3] w-full overflow-hidden rounded-md border">
@@ -255,18 +255,18 @@ export default async function NewsPage({
                           ) : (
                             <ImagePlaceholder ratio="4:3" />
                           )}
-                          <div className="mt-5 flex flex-col gap-2.5">
+                          <div className="mt-5 flex min-w-0 flex-col gap-2.5">
                             <p className="text-rust font-mono text-[10px] font-medium tracking-[0.18em] uppercase">
                               {CATEGORY_LABELS[post.category]}
                             </p>
-                            <h3 className="text-ink font-display group-hover/news:text-rust text-2xl leading-tight font-semibold">
+                            <h3 className="text-ink font-display group-hover/news:text-rust text-2xl leading-tight font-semibold break-words">
                               {post.title}
                             </h3>
                             <p className="text-ink-faint font-mono text-[11px]">
                               {format(new Date(post.publishedAt), 'd MMM yyyy')}
                             </p>
                             {post.excerpt && (
-                              <p className="text-navy-primary font-display mt-1 line-clamp-3 text-base leading-relaxed italic">
+                              <p className="text-navy-primary font-display mt-1 line-clamp-3 text-base leading-relaxed break-words italic">
                                 {post.excerpt}
                               </p>
                             )}

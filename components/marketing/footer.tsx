@@ -17,7 +17,7 @@ export function PublicFooter() {
   return (
     <footer className="border-ink-ghost/40 bg-paper-2 mt-24 border-t">
       <div className="mx-auto grid max-w-[1120px] gap-12 px-4 py-16 sm:px-8 md:grid-cols-[auto_1fr_1fr]">
-        <div className="flex items-start gap-4">
+        <div className="flex min-w-0 items-start gap-4">
           <Image
             src="/seal/lambunao-seal.png"
             width={60}
@@ -25,50 +25,56 @@ export function PublicFooter() {
             alt={`Official seal of ${TENANT.displayName}, Province of Iloilo`}
             className="size-12 shrink-0 rounded-full"
           />
-          <div className="text-sm leading-relaxed">
-            <p className="text-navy-primary font-display text-lg leading-tight font-semibold">
+          <div className="min-w-0 text-sm leading-relaxed">
+            <p className="text-navy-primary font-display text-lg leading-tight font-semibold break-words">
               {TENANT.displayName}
             </p>
-            <p className="text-ink-faint mt-1.5 font-mono text-[11px] tracking-[0.18em] uppercase">
+            <p className="text-ink-faint mt-1.5 font-mono text-[11px] tracking-[0.18em] break-words uppercase">
               Province of Iloilo · Established 1948
             </p>
           </div>
         </div>
 
-        <div className="text-sm leading-relaxed">
+        <div className="min-w-0 text-sm leading-relaxed">
           <h2 className="text-ink-faint mb-3 text-xs font-semibold tracking-wide uppercase">
             Office
           </h2>
-          <p className="text-ink">{TENANT.office}</p>
-          <p className="text-ink mt-2">{TENANT.hours}</p>
+          <p className="text-ink break-words">{TENANT.office}</p>
+          <p className="text-ink mt-2 break-words">{TENANT.hours}</p>
           <p className="text-ink-soft mt-2 text-xs">
             Closed weekends and Philippine public holidays.
           </p>
         </div>
 
-        <div className="text-sm leading-relaxed">
+        <div className="min-w-0 text-sm leading-relaxed">
           <h2 className="text-ink-faint mb-3 text-xs font-semibold tracking-wide uppercase">
             Contact
           </h2>
           <p>
-            <a href={`mailto:${TENANT.email}`} className="text-navy-primary hover:underline">
+            <a
+              href={`mailto:${TENANT.email}`}
+              className="text-navy-primary break-words hover:underline"
+            >
               {TENANT.email}
             </a>
           </p>
-          <p className="text-ink mt-1">{TENANT.phone}</p>
+          <p className="text-ink mt-1 break-words">{TENANT.phone}</p>
           <p className="mt-3 text-xs">
             <span className="text-ink-faint">Data Privacy Officer:</span>{' '}
-            <a href={`mailto:${TENANT.dpoEmail}`} className="text-navy-primary hover:underline">
+            <a
+              href={`mailto:${TENANT.dpoEmail}`}
+              className="text-navy-primary break-words hover:underline"
+            >
               {TENANT.dpoEmail}
             </a>
           </p>
           <p className="mt-3 flex items-center gap-1.5 text-xs">
-            <FacebookIcon className="text-ink-faint size-3.5" aria-hidden="true" />
+            <FacebookIcon className="text-ink-faint size-3.5 shrink-0" aria-hidden="true" />
             <a
               href={SOCIAL_LINKS.facebook}
               target="_blank"
               rel="noreferrer noopener"
-              className="text-navy-primary hover:underline"
+              className="text-navy-primary min-w-0 break-words hover:underline"
             >
               facebook.com/lambunaoipadayaw
             </a>

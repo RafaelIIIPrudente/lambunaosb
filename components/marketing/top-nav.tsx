@@ -50,10 +50,10 @@ export function PublicTopNav() {
           </SheetTrigger>
           <SheetContent side="left" className="bg-paper w-80 p-0">
             <SheetHeader className="border-ink/12 border-b p-6">
-              <SheetTitle className="font-script text-navy-primary text-xl font-semibold">
+              <SheetTitle className="font-script text-navy-primary text-xl font-semibold break-words">
                 Sangguniang Bayan
               </SheetTitle>
-              <SheetDescription className="text-ink-faint font-mono text-xs">
+              <SheetDescription className="text-ink-faint font-mono text-xs break-words">
                 Municipality of Lambunao, Iloilo
               </SheetDescription>
             </SheetHeader>
@@ -91,9 +91,11 @@ export function PublicTopNav() {
             priority
             className="size-9 shrink-0 rounded-full"
           />
-          <div className="hidden flex-col leading-tight sm:flex">
-            <span className="font-script text-ink text-xl leading-none">Sangguniang Bayan</span>
-            <span className="text-ink-faint font-mono text-[11px] tracking-wide">
+          <div className="hidden min-w-0 flex-col leading-tight sm:flex">
+            <span className="font-script text-ink text-xl leading-none break-words">
+              Sangguniang Bayan
+            </span>
+            <span className="text-ink-faint font-mono text-[11px] tracking-wide break-words">
               Municipality of Lambunao, Iloilo
             </span>
           </div>
