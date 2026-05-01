@@ -40,4 +40,11 @@ export const env = createEnv({
       process.env.NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY,
   },
   emptyStringAsUndefined: true,
+  onValidationError: (issues) => {
+    const lines = issues.map((i) => {
+      const path = i.path?.length ? i.path.join('.') : '<root>';
+      return `  - ${path}: ${i.message}`;
+    });
+    throw new Error(`Invalid environment variables:\n${lines.join('\n')}`);
+  },
 });
