@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { requireUser } from '@/lib/auth/require-user';
 import { getAuditEntryById } from '@/lib/db/queries/audit';
+import { safeBuildtimeQuery } from '@/lib/db/queries/_safe';
 import { SB_MEMBER_TIER_ROLES } from '@/lib/validators/user';
 import {
   AUDIT_CATEGORY_LABELS,
@@ -60,7 +61,7 @@ export default async function AuditEntryDetailPage({
     redirect('/admin/dashboard');
   }
 
-  const entry = await getAuditEntryById(id);
+  const entry = await safeBuildtimeQuery(() => getAuditEntryById(id), null);
   if (!entry) notFound();
 
   const deepLink = TARGET_DEEP_LINKS[entry.targetType]?.(entry.targetId);

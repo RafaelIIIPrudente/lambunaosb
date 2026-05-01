@@ -6,6 +6,7 @@ import { AdminPageHeader } from '@/components/app/admin-page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardEyebrow, CardFooter, CardTitle } from '@/components/ui/card';
+import { safeBuildtimeQuery } from '@/lib/db/queries/_safe';
 import {
   getResolutionCommittees,
   getResolutionsList,
@@ -78,16 +79,20 @@ export default async function ResolutionsPage({
   const committeeParam = params.committee?.trim() ?? '';
 
   const [rows, years, sponsors, committees] = await Promise.all([
-    getResolutionsList({
-      ...(filter !== 'all' ? { status: filter as ResolutionStatus } : {}),
-      ...(q ? { q } : {}),
-      ...(yearNumber ? { year: yearNumber } : {}),
-      ...(sponsorParam ? { primarySponsorId: sponsorParam } : {}),
-      ...(committeeParam ? { committeeId: committeeParam } : {}),
-    }),
-    getResolutionYears(),
-    getResolutionSponsors(),
-    getResolutionCommittees(),
+    safeBuildtimeQuery(
+      () =>
+        getResolutionsList({
+          ...(filter !== 'all' ? { status: filter as ResolutionStatus } : {}),
+          ...(q ? { q } : {}),
+          ...(yearNumber ? { year: yearNumber } : {}),
+          ...(sponsorParam ? { primarySponsorId: sponsorParam } : {}),
+          ...(committeeParam ? { committeeId: committeeParam } : {}),
+        }),
+      [],
+    ),
+    safeBuildtimeQuery(() => getResolutionYears(), []),
+    safeBuildtimeQuery(() => getResolutionSponsors(), []),
+    safeBuildtimeQuery(() => getResolutionCommittees(), []),
   ]);
 
   const filterOptions: { value: FilterValue; label: string }[] = [

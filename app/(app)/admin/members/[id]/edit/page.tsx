@@ -5,9 +5,10 @@ import { notFound } from 'next/navigation';
 import { ChevronRight } from 'lucide-react';
 
 import { requireUser } from '@/lib/auth/require-user';
+import { safeBuildtimeQuery } from '@/lib/db/queries/_safe';
 import { getCommittees } from '@/lib/db/queries/committees';
 import { getMemberById } from '@/lib/db/queries/members';
-import { getCurrentTenantId } from '@/lib/db/queries/tenant';
+import { FALLBACK_TENANT, getCurrentTenantId } from '@/lib/db/queries/tenant';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getCompressedImageUrl, pickSizeForSurface } from '@/lib/upload/storage-url';
 
@@ -22,7 +23,7 @@ export default async function EditMemberPage({ params }: { params: Promise<{ id:
   const { id } = await params;
   const ctx = await requireUser();
 
-  const member = await getMemberById(id);
+  const member = await safeBuildtimeQuery(() => getMemberById(id), null);
   if (!member) notFound();
 
   const isSelf = ctx.profile.memberId === member.id;
@@ -32,14 +33,18 @@ export default async function EditMemberPage({ params }: { params: Promise<{ id:
   }
 
   const [committees, tenantId, signedDownloadUrl] = await Promise.all([
-    getCommittees(),
-    getCurrentTenantId(),
-    getCompressedImageUrl({
-      supabase: createAdminClient(),
-      bucket: 'members-portraits',
-      prefix: member.photoStoragePath,
-      size: pickSizeForSurface('inline'),
-    }),
+    safeBuildtimeQuery(() => getCommittees(), []),
+    safeBuildtimeQuery(() => getCurrentTenantId(), FALLBACK_TENANT.id),
+    safeBuildtimeQuery(
+      () =>
+        getCompressedImageUrl({
+          supabase: createAdminClient(),
+          bucket: 'members-portraits',
+          prefix: member.photoStoragePath,
+          size: pickSizeForSurface('inline'),
+        }),
+      null,
+    ),
   ]);
 
   const committeeOptions = committees.map((c) => ({ id: c.id, name: c.name }));

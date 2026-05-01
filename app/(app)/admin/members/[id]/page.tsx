@@ -8,6 +8,7 @@ import { ChevronRight, Eye, Mail, Phone } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { requireUser } from '@/lib/auth/require-user';
+import { safeBuildtimeQuery } from '@/lib/db/queries/_safe';
 import { getMemberById } from '@/lib/db/queries/members';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getCompressedImageUrl, pickSizeForSurface } from '@/lib/upload/storage-url';
@@ -21,15 +22,19 @@ export default async function MemberDetailPage({ params }: { params: Promise<{ i
   const { id } = await params;
   const ctx = await requireUser();
 
-  const member = await getMemberById(id);
+  const member = await safeBuildtimeQuery(() => getMemberById(id), null);
   if (!member) notFound();
 
-  const signedDownloadUrl = await getCompressedImageUrl({
-    supabase: createAdminClient(),
-    bucket: 'members-portraits',
-    prefix: member.photoStoragePath,
-    size: pickSizeForSurface('inline'),
-  });
+  const signedDownloadUrl = await safeBuildtimeQuery(
+    () =>
+      getCompressedImageUrl({
+        supabase: createAdminClient(),
+        bucket: 'members-portraits',
+        prefix: member.photoStoragePath,
+        size: pickSizeForSurface('inline'),
+      }),
+    null,
+  );
 
   return (
     <div>

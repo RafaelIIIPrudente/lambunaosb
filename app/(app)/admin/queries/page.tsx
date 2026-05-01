@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardEyebrow, CardFooter, CardTitle } from '@/components/ui/card';
 import { requireUser } from '@/lib/auth/require-user';
+import { safeBuildtimeQuery } from '@/lib/db/queries/_safe';
 import {
   getAssignmentCounts,
   getCitizenQueries,
@@ -88,15 +89,27 @@ export default async function QueriesAdminPage({
   const baseFilters: FilterState = { status, assigned, q, cursor: cursorString };
 
   const [{ rows, nextCursor }, statusCounts, assignmentCounts] = await Promise.all([
-    getCitizenQueries({
-      status: status === 'all' ? undefined : status,
-      assignedTo:
-        assigned === 'unassigned' ? 'unassigned' : assigned === 'mine' ? ctx.userId : undefined,
-      q: q || undefined,
-      cursor: cursorDate ?? undefined,
+    safeBuildtimeQuery(
+      () =>
+        getCitizenQueries({
+          status: status === 'all' ? undefined : status,
+          assignedTo:
+            assigned === 'unassigned' ? 'unassigned' : assigned === 'mine' ? ctx.userId : undefined,
+          q: q || undefined,
+          cursor: cursorDate ?? undefined,
+        }),
+      { rows: [], nextCursor: null },
+    ),
+    safeBuildtimeQuery(() => getCitizenQueryStatusCounts(), {
+      all: 0,
+      new: 0,
+      in_progress: 0,
+      awaiting_citizen: 0,
+      answered: 0,
+      closed: 0,
+      spam: 0,
     }),
-    getCitizenQueryStatusCounts(),
-    getAssignmentCounts(ctx.userId),
+    safeBuildtimeQuery(() => getAssignmentCounts(ctx.userId), { unassigned: 0, mine: 0 }),
   ]);
 
   const statusFilterOptions: { value: StatusFilter; label: string; count: number }[] = [

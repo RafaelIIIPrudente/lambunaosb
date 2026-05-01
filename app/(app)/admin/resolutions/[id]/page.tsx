@@ -10,9 +10,10 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { requireUser } from '@/lib/auth/require-user';
 import { db } from '@/lib/db';
+import { safeBuildtimeQuery } from '@/lib/db/queries/_safe';
 import { getMeetingById } from '@/lib/db/queries/meetings';
 import { getResolutionById, getResolutionVersions } from '@/lib/db/queries/resolutions';
-import { getCurrentTenantId } from '@/lib/db/queries/tenant';
+import { FALLBACK_TENANT, getCurrentTenantId } from '@/lib/db/queries/tenant';
 import { sbMembers } from '@/lib/db/schema';
 import { fileNameFromPath, formatBytes } from '@/lib/format';
 import { createAdminClient } from '@/lib/supabase/admin';
@@ -50,23 +51,29 @@ export default async function ResolutionDetailPage({
   const { id } = await params;
   const ctx = await requireUser();
 
-  const resolution = await getResolutionById(id);
+  const resolution = await safeBuildtimeQuery(() => getResolutionById(id), null);
   if (!resolution) notFound();
 
   const [versions, meeting, coSponsors, tenantId, signedDownloadUrl] = await Promise.all([
-    getResolutionVersions(resolution.id),
-    resolution.meetingId ? getMeetingById(resolution.meetingId) : Promise.resolve(null),
+    safeBuildtimeQuery(() => getResolutionVersions(resolution.id), []),
+    resolution.meetingId
+      ? safeBuildtimeQuery(() => getMeetingById(resolution.meetingId!), null)
+      : Promise.resolve(null),
     resolution.coSponsorIds.length > 0
-      ? db
-          .select({
-            id: sbMembers.id,
-            fullName: sbMembers.fullName,
-            honorific: sbMembers.honorific,
-          })
-          .from(sbMembers)
-          .where(inArray(sbMembers.id, resolution.coSponsorIds))
+      ? safeBuildtimeQuery(
+          () =>
+            db
+              .select({
+                id: sbMembers.id,
+                fullName: sbMembers.fullName,
+                honorific: sbMembers.honorific,
+              })
+              .from(sbMembers)
+              .where(inArray(sbMembers.id, resolution.coSponsorIds)),
+          [] as { id: string; fullName: string; honorific: string | null }[],
+        )
       : Promise.resolve([] as { id: string; fullName: string; honorific: string | null }[]),
-    getCurrentTenantId(),
+    safeBuildtimeQuery(() => getCurrentTenantId(), FALLBACK_TENANT.id),
     resolution.pdfStoragePath
       ? createAdminClient()
           .storage.from(PDF_BUCKET)

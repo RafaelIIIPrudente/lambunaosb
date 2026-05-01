@@ -8,6 +8,7 @@ import { AdminPageHeader } from '@/components/app/admin-page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardEyebrow, CardFooter, CardTitle } from '@/components/ui/card';
+import { safeBuildtimeQuery } from '@/lib/db/queries/_safe';
 import {
   getMeetingsList,
   getMeetingStatusCounts,
@@ -109,15 +110,27 @@ export default async function MeetingsAdminPage({
   };
 
   const [{ rows, nextCursor }, statusCounts, years] = await Promise.all([
-    getMeetingsList({
-      ...(status !== 'all' ? { status: status as MeetingStatus } : {}),
-      ...(type !== 'all' ? { type: type as MeetingTypeValue } : {}),
-      ...(yearNumber ? { year: yearNumber } : {}),
-      ...(q ? { q } : {}),
-      ...(cursorDate ? { cursor: cursorDate } : {}),
+    safeBuildtimeQuery(
+      () =>
+        getMeetingsList({
+          ...(status !== 'all' ? { status: status as MeetingStatus } : {}),
+          ...(type !== 'all' ? { type: type as MeetingTypeValue } : {}),
+          ...(yearNumber ? { year: yearNumber } : {}),
+          ...(q ? { q } : {}),
+          ...(cursorDate ? { cursor: cursorDate } : {}),
+        }),
+      { rows: [], nextCursor: null },
+    ),
+    safeBuildtimeQuery<Record<MeetingStatus, number>>(() => getMeetingStatusCounts(), {
+      scheduled: 0,
+      in_progress: 0,
+      awaiting_transcript: 0,
+      transcript_in_review: 0,
+      transcript_approved: 0,
+      minutes_published: 0,
+      cancelled: 0,
     }),
-    getMeetingStatusCounts(),
-    getMeetingYears(),
+    safeBuildtimeQuery(() => getMeetingYears(), []),
   ]);
 
   const totalCount = Object.values(statusCounts).reduce((sum, n) => sum + n, 0);

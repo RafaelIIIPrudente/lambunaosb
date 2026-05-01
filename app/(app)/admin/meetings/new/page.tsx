@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
 
 import { AdminPageHeader } from '@/components/app/admin-page-header';
+import { safeBuildtimeQuery } from '@/lib/db/queries/_safe';
 import { getActiveMembers } from '@/lib/db/queries/members';
 import { getNextMeetingSequenceNumber } from '@/lib/db/queries/meetings';
 
@@ -14,8 +15,8 @@ export const metadata = { title: 'New meeting' };
 export default async function NewMeetingPage() {
   const currentYear = new Date().getFullYear();
   const [members, suggestedSequenceNumber] = await Promise.all([
-    getActiveMembers({ excludePositions: ['mayor'] }),
-    getNextMeetingSequenceNumber('regular', currentYear),
+    safeBuildtimeQuery(() => getActiveMembers({ excludePositions: ['mayor'] }), []),
+    safeBuildtimeQuery(() => getNextMeetingSequenceNumber('regular', currentYear), 1),
   ]);
 
   const presiderOptions = members.map((m) => ({

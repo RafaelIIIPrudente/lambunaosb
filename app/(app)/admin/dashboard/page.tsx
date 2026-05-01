@@ -5,7 +5,8 @@ import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardEyebrow, CardFooter, CardTitle } from '@/components/ui/card';
 import { requireUser } from '@/lib/auth/require-user';
-import { getDashboardData } from '@/lib/db/queries/dashboard';
+import { type DashboardData, getDashboardData } from '@/lib/db/queries/dashboard';
+import { safeBuildtimeQuery } from '@/lib/db/queries/_safe';
 
 export const metadata = {
   title: 'Dashboard',
@@ -44,7 +45,21 @@ function humanizeTargetType(targetType: string): string {
 
 export default async function DashboardPage() {
   const ctx = await requireUser();
-  const data = await getDashboardData();
+  const data = await safeBuildtimeQuery<DashboardData>(() => getDashboardData(), {
+    upcomingMeeting: null,
+    pendingQueriesCount: 0,
+    queryCounts: {
+      all: 0,
+      new: 0,
+      in_progress: 0,
+      awaiting_citizen: 0,
+      answered: 0,
+      closed: 0,
+      spam: 0,
+    },
+    recentResolution: null,
+    recentActivity: [],
+  });
   const now = new Date();
 
   const upcoming = data.upcomingMeeting;

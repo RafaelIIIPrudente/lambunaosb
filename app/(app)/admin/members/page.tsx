@@ -10,7 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardEyebrow, CardFooter, CardTitle } from '@/components/ui/card';
 import { db } from '@/lib/db';
-import { getCurrentTenantId } from '@/lib/db/queries/tenant';
+import { safeBuildtimeQuery } from '@/lib/db/queries/_safe';
+import { FALLBACK_TENANT, getCurrentTenantId } from '@/lib/db/queries/tenant';
 import { sbMembers } from '@/lib/db/schema';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getCompressedImageUrl, pickSizeForSurface } from '@/lib/upload/storage-url';
@@ -20,14 +21,18 @@ import { MEMBER_POSITION_LABELS } from '@/lib/validators/member';
 export const metadata = { title: 'SB Members' };
 
 export default async function MembersAdminPage() {
-  const tenantId = await getCurrentTenantId();
+  const tenantId = await safeBuildtimeQuery(() => getCurrentTenantId(), FALLBACK_TENANT.id);
   // Local query (not via getActiveMembers) so the admin list shows inactive
   // members too — only archived (deletedAt) rows are excluded.
-  const rows = await db
-    .select()
-    .from(sbMembers)
-    .where(and(eq(sbMembers.tenantId, tenantId), isNull(sbMembers.deletedAt)))
-    .orderBy(asc(sbMembers.sortOrder), asc(sbMembers.fullName));
+  const rows = await safeBuildtimeQuery(
+    () =>
+      db
+        .select()
+        .from(sbMembers)
+        .where(and(eq(sbMembers.tenantId, tenantId), isNull(sbMembers.deletedAt)))
+        .orderBy(asc(sbMembers.sortOrder), asc(sbMembers.fullName)),
+    [],
+  );
 
   // Generate signed URLs in parallel only for members with portraits.
   const adminClient = createAdminClient();

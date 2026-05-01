@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardEyebrow, CardFooter, CardTitle } from '@/components/ui/card';
 import { requireUser } from '@/lib/auth/require-user';
 import { getAlertCount, getAuditActorOptions, getAuditEntries } from '@/lib/db/queries/audit';
+import { safeBuildtimeQuery } from '@/lib/db/queries/_safe';
 import { SB_MEMBER_TIER_ROLES } from '@/lib/validators/user';
 import { cn } from '@/lib/utils';
 import {
@@ -98,17 +99,21 @@ export default async function AuditPage({
   const cursorDate = filters.cursor ? new Date(filters.cursor) : null;
 
   const [{ rows, nextCursor }, actorOptions, alertCount] = await Promise.all([
-    getAuditEntries({
-      category: filters.category,
-      actorId: filters.actorId,
-      actionContains: filters.actionContains,
-      alertOnly: filters.alertOnly,
-      since,
-      until,
-      cursor: cursorDate,
-    }),
-    getAuditActorOptions(),
-    getAlertCount({ since }),
+    safeBuildtimeQuery(
+      () =>
+        getAuditEntries({
+          category: filters.category,
+          actorId: filters.actorId,
+          actionContains: filters.actionContains,
+          alertOnly: filters.alertOnly,
+          since,
+          until,
+          cursor: cursorDate,
+        }),
+      { rows: [], nextCursor: null },
+    ),
+    safeBuildtimeQuery(() => getAuditActorOptions(), []),
+    safeBuildtimeQuery(() => getAlertCount({ since }), 0),
   ]);
 
   const hasFilters =

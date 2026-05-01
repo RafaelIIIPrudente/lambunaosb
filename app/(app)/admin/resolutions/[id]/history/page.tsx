@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardEyebrow, CardFooter, CardTitle } from '@/components/ui/card';
 import { db } from '@/lib/db';
+import { safeBuildtimeQuery } from '@/lib/db/queries/_safe';
 import { getResolutionById, getResolutionVersions } from '@/lib/db/queries/resolutions';
 import { profiles } from '@/lib/db/schema';
 
@@ -22,10 +23,10 @@ export default async function ResolutionHistoryPage({
 }) {
   const { id } = await params;
 
-  const resolution = await getResolutionById(id);
+  const resolution = await safeBuildtimeQuery(() => getResolutionById(id), null);
   if (!resolution) notFound();
 
-  const versions = await getResolutionVersions(resolution.id);
+  const versions = await safeBuildtimeQuery(() => getResolutionVersions(resolution.id), []);
   const orderedVersions = [...versions].reverse();
 
   const authorIds = Array.from(
@@ -33,10 +34,14 @@ export default async function ResolutionHistoryPage({
   );
   const authors =
     authorIds.length > 0
-      ? await db
-          .select({ id: profiles.id, fullName: profiles.fullName, role: profiles.role })
-          .from(profiles)
-          .where(inArray(profiles.id, authorIds))
+      ? await safeBuildtimeQuery(
+          () =>
+            db
+              .select({ id: profiles.id, fullName: profiles.fullName, role: profiles.role })
+              .from(profiles)
+              .where(inArray(profiles.id, authorIds)),
+          [] as { id: string; fullName: string; role: string }[],
+        )
       : [];
   const authorById = new Map(authors.map((a) => [a.id, a]));
 

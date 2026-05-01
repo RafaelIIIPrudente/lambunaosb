@@ -9,6 +9,7 @@ import { AdminPageHeader } from '@/components/app/admin-page-header';
 import { Card, CardDescription, CardEyebrow, CardFooter, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { requireUser } from '@/lib/auth/require-user';
+import { safeBuildtimeQuery } from '@/lib/db/queries/_safe';
 import { getMeetingById } from '@/lib/db/queries/meetings';
 import { getActiveMembers } from '@/lib/db/queries/members';
 import { computeTranscriptStats, getTranscriptByMeetingId } from '@/lib/db/queries/transcripts';
@@ -50,10 +51,10 @@ export default async function TranscriptReviewPage({
 }) {
   const { id } = await params;
   const ctx = await requireUser();
-  const meeting = await getMeetingById(id);
+  const meeting = await safeBuildtimeQuery(() => getMeetingById(id), null);
   if (!meeting) notFound();
 
-  const transcriptData = await getTranscriptByMeetingId(id);
+  const transcriptData = await safeBuildtimeQuery(() => getTranscriptByMeetingId(id), null);
 
   // No transcript yet → soft placeholder + back link.
   if (!transcriptData) {
@@ -99,7 +100,7 @@ export default async function TranscriptReviewPage({
   }
 
   const stats = computeTranscriptStats(transcriptData);
-  const members = await getActiveMembers();
+  const members = await safeBuildtimeQuery(() => getActiveMembers(), []);
 
   const canEdit = EDIT_ROLES.includes(ctx.profile.role);
   const canApprove = APPROVE_ROLES.includes(ctx.profile.role);

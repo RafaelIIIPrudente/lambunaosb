@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 import { ChevronRight } from 'lucide-react';
 
 import { AdminPageHeader } from '@/components/app/admin-page-header';
+import { safeBuildtimeQuery } from '@/lib/db/queries/_safe';
 import { getMeetingById } from '@/lib/db/queries/meetings';
 import { getActiveMembers } from '@/lib/db/queries/members';
 
@@ -26,14 +27,17 @@ function localTimeString(d: Date): string {
 
 export default async function EditMeetingPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const meeting = await getMeetingById(id);
+  const meeting = await safeBuildtimeQuery(() => getMeetingById(id), null);
   if (!meeting) notFound();
   if (meeting.status !== 'scheduled') {
     // Editing locked once recording starts; redirect to detail.
     notFound();
   }
 
-  const members = await getActiveMembers({ excludePositions: ['mayor'] });
+  const members = await safeBuildtimeQuery(
+    () => getActiveMembers({ excludePositions: ['mayor'] }),
+    [],
+  );
   const presiderOptions = members.map((m) => ({
     id: m.id,
     label: `${m.honorific} ${m.fullName}`,
