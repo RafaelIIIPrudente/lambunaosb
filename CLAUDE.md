@@ -37,7 +37,6 @@ This file is loaded automatically into every Claude Code session in this reposit
 | Data tables                | `@tanstack/react-table`                                                     |
 | Animations                 | `motion` (formerly Framer Motion)                                           |
 | 3D helpers                 | `@react-three/drei`, `leva`                                                 |
-| Email                      | `resend` + `@react-email/components` + `@react-email/render`                |
 | Payments                   | `stripe` + `@stripe/stripe-js`                                              |
 | Product analytics          | `posthog-js` + `posthog-node`                                               |
 | Web vitals / page views    | `@vercel/analytics` + `@vercel/speed-insights`                              |

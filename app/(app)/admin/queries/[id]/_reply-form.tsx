@@ -12,7 +12,6 @@ type Props = {
   queryId: string;
   recipientEmail: string;
   recipientName: string;
-  emailEnabled: boolean;
   disabled?: boolean;
   disabledReason?: string;
 };
@@ -21,7 +20,6 @@ export function ReplyForm({
   queryId,
   recipientEmail,
   recipientName,
-  emailEnabled,
   disabled,
   disabledReason,
 }: Props) {
@@ -68,11 +66,7 @@ export function ReplyForm({
           <Field
             label="Reply"
             required
-            hint={
-              emailEnabled
-                ? 'Sends an email and records the message in the audit trail.'
-                : 'Email delivery is not configured (Resend not wired). The reply will be recorded but no email will be sent.'
-            }
+            hint="Records the reply in the audit trail. Contact the citizen directly via the email address shown above."
             error={error ?? (tooShort ? 'Reply must be at least 10 characters.' : undefined)}
           >
             <FieldTextarea
@@ -97,7 +91,7 @@ export function ReplyForm({
               className="font-medium"
             >
               <Send />
-              {isPending ? 'Sending…' : emailEnabled ? 'Send reply' : 'Record reply'}
+              {isPending ? 'Saving…' : 'Record reply'}
             </Button>
           </div>
         </>

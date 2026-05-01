@@ -12,11 +12,7 @@ import { profiles, tenants } from '@/lib/db/schema';
 import { createClient } from '@/lib/supabase/server';
 import { writeAudit } from '@/lib/services/audit';
 import { ok, err, type Result } from '@/lib/types/result';
-import {
-  updateNotificationPreferencesSchema,
-  updateProfileSchema,
-  updateTenantSettingsSchema,
-} from '@/lib/validators/settings';
+import { updateProfileSchema, updateTenantSettingsSchema } from '@/lib/validators/settings';
 
 export async function updateProfile(raw: unknown): Promise<Result<void>> {
   const parsed = updateProfileSchema.safeParse(raw);
@@ -55,32 +51,6 @@ export async function updateProfile(raw: unknown): Promise<Result<void>> {
     return ok(undefined);
   } catch (e) {
     return err(e instanceof Error ? e.message : 'Failed to update profile.', 'E_UNKNOWN');
-  }
-}
-
-export async function updateNotificationPreferences(raw: unknown): Promise<Result<void>> {
-  const parsed = updateNotificationPreferencesSchema.safeParse(raw);
-  if (!parsed.success) {
-    return err(parsed.error.issues[0]?.message ?? 'Invalid input.', 'E_VALIDATION');
-  }
-
-  const ctx = await getAuthContext();
-  if (!ctx) return err('You must be signed in.', 'E_UNAUTHORIZED');
-
-  try {
-    const tenantId = await getCurrentTenantId();
-    await db
-      .update(profiles)
-      .set({ notificationPreferences: parsed.data, updatedAt: new Date() })
-      .where(and(eq(profiles.tenantId, tenantId), eq(profiles.id, ctx.userId)));
-
-    revalidatePath('/admin/settings');
-    return ok(undefined);
-  } catch (e) {
-    return err(
-      e instanceof Error ? e.message : 'Failed to update notification preferences.',
-      'E_UNKNOWN',
-    );
   }
 }
 

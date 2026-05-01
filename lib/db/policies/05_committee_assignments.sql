@@ -3,9 +3,11 @@
 
 alter table public.committee_assignments enable row level security;
 
+-- Anon SELECT is tenant-scoped (not USING true) so the multi-tenant flip
+-- doesn't leak assignment data across tenants.
 create policy "committee_assignments_select_anon" on public.committee_assignments
   for select to anon
-  using (true);
+  using (tenant_id = (select id from public.tenants where slug = 'lambunao'));
 
 create policy "committee_assignments_select_authenticated" on public.committee_assignments
   for select to authenticated

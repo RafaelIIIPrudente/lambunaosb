@@ -3,12 +3,11 @@ import 'server-only';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { format, formatDistanceToNowStrict } from 'date-fns';
-import { ChevronRight, Mail, MailX } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 
 import { markCitizenQueryViewed } from '@/app/_actions/citizen-queries';
 import { Badge } from '@/components/ui/badge';
 import { requireUser } from '@/lib/auth/require-user';
-import { env } from '@/env';
 import {
   getAdminAssigneeOptions,
   getCitizenQueryById,
@@ -60,7 +59,6 @@ export default async function QueryDetailPage({ params }: { params: Promise<{ id
   ]);
 
   const canArchive = ARCHIVE_ROLES.has(ctx.profile.role);
-  const emailEnabled = Boolean(env.RESEND_API_KEY && env.RESEND_FROM_EMAIL);
   const replyDisabledReason = REPLIES_LOCKED[query.status];
 
   return (
@@ -129,24 +127,6 @@ export default async function QueryDetailPage({ params }: { params: Promise<{ id
                           {reply.authorName ?? 'Office of the Sanggunian'}
                         </p>
                         <p className="text-ink-faint font-mono text-[11px]">
-                          {reply.resendMessageId ? (
-                            <span
-                              className="inline-flex items-center gap-1"
-                              title={`Email sent · Resend id ${reply.resendMessageId}`}
-                            >
-                              <Mail className="size-3" aria-hidden="true" />
-                              Sent via email
-                            </span>
-                          ) : (
-                            <span
-                              className="inline-flex items-center gap-1"
-                              title="Email not delivered (Resend not configured at the time)"
-                            >
-                              <MailX className="size-3" aria-hidden="true" />
-                              Recorded only
-                            </span>
-                          )}
-                          {' · '}
                           <span title={format(reply.sentAt, 'PPpp')}>
                             {formatDistanceToNowStrict(reply.sentAt, { addSuffix: true })}
                           </span>
@@ -166,7 +146,6 @@ export default async function QueryDetailPage({ params }: { params: Promise<{ id
             queryId={query.id}
             recipientEmail={query.submitterEmail}
             recipientName={query.submitterName}
-            emailEnabled={emailEnabled}
             disabled={Boolean(replyDisabledReason)}
             disabledReason={replyDisabledReason}
           />

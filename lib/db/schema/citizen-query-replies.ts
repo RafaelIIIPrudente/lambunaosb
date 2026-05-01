@@ -21,7 +21,6 @@ export const citizenQueryReplies = pgTable('citizen_query_replies', {
   bodyMd: text('body_md').notNull(),
   sentToEmail: text('sent_to_email').notNull(),
   sentAt: timestamp('sent_at', { withTimezone: true }).notNull().defaultNow(),
-  resendMessageId: text('resend_message_id'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 

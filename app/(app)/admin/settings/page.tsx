@@ -10,12 +10,10 @@ import { cn } from '@/lib/utils';
 import {
   UI_LOCALE_LABELS,
   UI_LOCALE_SAMPLES,
-  type UpdateNotificationPreferencesInput,
   type UpdateProfileInput,
   type UpdateTenantSettingsInput,
 } from '@/lib/validators/settings';
 
-import { NotificationsForm } from './_notifications-form';
 import { ProfileForm } from './_profile-form';
 import { SessionsSection } from './_sessions-section';
 import { TenantForm } from './_tenant-form';
@@ -53,8 +51,6 @@ export default async function SettingsPage() {
     timeZone: profile.timeZone,
   };
 
-  const notificationDefaults: UpdateNotificationPreferencesInput = profile.notificationPreferences;
-
   const tenantDefaults: UpdateTenantSettingsInput | null = tenant
     ? {
         displayName: tenant.displayName,
@@ -68,7 +64,6 @@ export default async function SettingsPage() {
 
   const sections: Section[] = [
     { id: 'profile', label: 'Profile', visible: true },
-    { id: 'notifications', label: 'Notifications', visible: true },
     { id: 'language', label: 'Language', visible: true },
     { id: 'sessions', label: 'Sessions', visible: true },
     { id: 'organization', label: 'Organization', visible: isSecretary },
@@ -120,20 +115,6 @@ export default async function SettingsPage() {
               Profile
             </p>
             <ProfileForm defaults={profileDefaults} />
-          </section>
-
-          <section
-            id="notifications"
-            aria-labelledby="notifications-heading"
-            className="border-ink/15 scroll-mt-20 rounded-md border p-6"
-          >
-            <p
-              id="notifications-heading"
-              className="text-rust mb-4 font-mono text-[10px] font-semibold tracking-[0.18em] uppercase"
-            >
-              Notifications
-            </p>
-            <NotificationsForm defaults={notificationDefaults} />
           </section>
 
           <section

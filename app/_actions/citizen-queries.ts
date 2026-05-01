@@ -9,7 +9,6 @@ import { getAuthContext } from '@/lib/auth/require-user';
 import { db } from '@/lib/db';
 import { getCurrentTenantId } from '@/lib/db/queries/tenant';
 import { citizenQueries, citizenQueryReplies, profiles } from '@/lib/db/schema';
-import { sendQueryReplyEmail } from '@/lib/services/email';
 import { writeAudit } from '@/lib/services/audit';
 import { ok, err, type Result } from '@/lib/types/result';
 import {
@@ -117,19 +116,6 @@ export async function replyToCitizenQuery(raw: unknown): Promise<Result<{ replyI
       return err('Reopen the query before replying.', 'E_INVALID_STATE');
     }
 
-    const sendResult = await sendQueryReplyEmail({
-      to: query.submitterEmail,
-      recipientName: query.submitterName,
-      referenceNumber: query.ref,
-      subject: query.subject,
-      bodyMd: parsed.data.bodyMd,
-      authorName: ctx.profile.fullName,
-    });
-
-    const resendMessageId =
-      'messageId' in sendResult && !sendResult.skipped ? sendResult.messageId : null;
-    const sendError = 'error' in sendResult ? sendResult.error : null;
-
     const [reply] = await db
       .insert(citizenQueryReplies)
       .values({
@@ -138,7 +124,6 @@ export async function replyToCitizenQuery(raw: unknown): Promise<Result<{ replyI
         authorId: ctx.userId,
         bodyMd: parsed.data.bodyMd,
         sentToEmail: query.submitterEmail,
-        resendMessageId,
       })
       .returning({ id: citizenQueryReplies.id });
 
@@ -167,9 +152,6 @@ export async function replyToCitizenQuery(raw: unknown): Promise<Result<{ replyI
       metadata: {
         ref: query.ref,
         replyId: reply.id,
-        emailDelivered: resendMessageId !== null,
-        emailSkipReason:
-          sendResult.skipped === true ? sendResult.reason : sendError ? 'send_failed' : null,
       },
     });
 
