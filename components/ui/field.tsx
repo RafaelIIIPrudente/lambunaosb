@@ -32,7 +32,10 @@ function Field({
       data-error={error ? 'true' : undefined}
       aria-describedby={hint || error ? `${id}-help` : undefined}
       className={cn(
-        'relative rounded-md border px-4 pt-3 pb-2.5 transition-colors',
+        // min-w-0 overrides the browser's default `min-width: min-content` on
+        // <fieldset>, which would otherwise prevent the field from shrinking
+        // below its longest unbreakable child and overflow narrow viewports.
+        'relative min-w-0 rounded-md border px-4 pt-3 pb-2.5 transition-colors',
         'border-ink/25 focus-within:border-rust',
         'data-[error=true]:border-warn',
         className,
@@ -73,7 +76,7 @@ function FieldInput({ className, ...props }: React.ComponentProps<'input'>) {
     <input
       data-slot="field-input"
       className={cn(
-        'text-ink placeholder:text-ink-faint w-full bg-transparent text-sm font-medium outline-none',
+        'text-ink placeholder:text-ink-faint w-full max-w-full min-w-0 bg-transparent text-sm font-medium outline-none',
         'public:text-base',
         className,
       )}
@@ -87,7 +90,10 @@ function FieldTextarea({ className, ...props }: React.ComponentProps<'textarea'>
     <textarea
       data-slot="field-textarea"
       className={cn(
-        'text-ink placeholder:text-ink-faint field-sizing-content min-h-24 w-full bg-transparent text-sm leading-relaxed font-medium outline-none',
+        // max-w-full + min-w-0 cap horizontal growth from `field-sizing: content`,
+        // which would otherwise size the textarea to its content's max-content
+        // and push the form column wider than the viewport on mobile.
+        'text-ink placeholder:text-ink-faint field-sizing-content min-h-24 w-full max-w-full min-w-0 bg-transparent text-sm leading-relaxed font-medium break-words outline-none',
         'public:text-base',
         className,
       )}
@@ -101,7 +107,7 @@ function FieldSelect({ className, children, ...props }: React.ComponentProps<'se
     <select
       data-slot="field-select"
       className={cn(
-        'text-ink placeholder:text-ink-faint w-full bg-transparent text-sm font-medium outline-none',
+        'text-ink placeholder:text-ink-faint w-full max-w-full min-w-0 bg-transparent text-sm font-medium outline-none',
         'public:text-base',
         className,
       )}

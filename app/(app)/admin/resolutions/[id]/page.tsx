@@ -122,7 +122,7 @@ export default async function ResolutionDetailPage({
         />
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
+      <div className="grid min-w-0 grid-cols-1 gap-5 lg:grid-cols-[1fr_320px]">
         <article className="border-ink/15 flex flex-col overflow-hidden rounded-md border">
           <header className="border-ink/15 flex flex-wrap items-center justify-between gap-3 border-b px-5 py-3">
             <div className="min-w-0">

@@ -88,7 +88,7 @@ export default async function MemberDetailPage({ params }: { params: Promise<{ i
       <div className="grid gap-5 lg:grid-cols-[280px_1fr_280px]">
         {/* Portrait */}
         <aside>
-          <div className="border-ink/15 bg-paper-2 relative flex aspect-[3/4] items-center justify-center overflow-hidden rounded-md border">
+          <div className="border-ink/15 bg-paper-2 relative mx-auto flex aspect-[3/4] w-full max-w-[180px] items-center justify-center overflow-hidden rounded-md border sm:max-w-[280px]">
             {signedDownloadUrl ? (
               <Image
                 src={signedDownloadUrl}

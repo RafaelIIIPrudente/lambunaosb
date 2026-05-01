@@ -102,7 +102,7 @@ export default async function EditNewsPostPage({ params }: { params: Promise<{ i
       </header>
 
       <div className="flex min-w-0 flex-col gap-6">
-        <div className="grid min-w-0 gap-5 lg:grid-cols-[320px_1fr]">
+        <div className="grid min-w-0 grid-cols-1 gap-5 lg:grid-cols-[320px_1fr]">
           <aside className="min-w-0">
             <p className="text-rust mb-3 font-mono text-[10px] font-semibold tracking-[0.18em] uppercase">
               Cover image

@@ -121,7 +121,7 @@ export function PhotoSection({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="border-ink/15 bg-paper-2 relative flex aspect-[3/4] items-center justify-center overflow-hidden rounded-md border">
+      <div className="border-ink/15 bg-paper-2 relative mx-auto flex aspect-[3/4] w-full max-w-[180px] items-center justify-center overflow-hidden rounded-md border sm:max-w-[280px]">
         {signedDownloadUrl && photoStoragePath ? (
           <Image
             src={signedDownloadUrl}

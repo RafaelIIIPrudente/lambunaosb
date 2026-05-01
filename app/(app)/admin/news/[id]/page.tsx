@@ -125,7 +125,7 @@ export default async function NewsPostDetailPage({ params }: { params: Promise<{
         />
       </div>
 
-      <div className="grid min-w-0 gap-5 lg:grid-cols-[1fr_320px]">
+      <div className="grid min-w-0 grid-cols-1 gap-5 lg:grid-cols-[1fr_320px]">
         <div className="flex min-w-0 flex-col gap-5">
           <article className="border-ink/15 overflow-hidden rounded-md border">
             <div className="bg-paper-2 relative flex h-64 w-full items-center justify-center sm:h-80 lg:h-96">

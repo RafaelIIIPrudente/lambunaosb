@@ -67,8 +67,8 @@ export function NewsEditorForm({ postId, slugLocked, initialValues, committeeOpt
   }
 
   return (
-    <form className="flex flex-col gap-5" onSubmit={form.handleSubmit(onSubmit)} noValidate>
-      <section className="border-ink/15 rounded-md border p-5">
+    <form className="flex min-w-0 flex-col gap-5" onSubmit={form.handleSubmit(onSubmit)} noValidate>
+      <section className="border-ink/15 min-w-0 rounded-md border p-5">
         <p className="text-rust mb-4 font-mono text-[10px] font-semibold tracking-[0.18em] uppercase">
           Headline
         </p>
@@ -123,7 +123,7 @@ export function NewsEditorForm({ postId, slugLocked, initialValues, committeeOpt
         </div>
       </section>
 
-      <section className="border-ink/15 rounded-md border p-5">
+      <section className="border-ink/15 min-w-0 rounded-md border p-5">
         <p className="text-rust mb-4 font-mono text-[10px] font-semibold tracking-[0.18em] uppercase">
           Body
         </p>
@@ -132,7 +132,7 @@ export function NewsEditorForm({ postId, slugLocked, initialValues, committeeOpt
         </Field>
       </section>
 
-      <section className="border-ink/15 rounded-md border p-5">
+      <section className="border-ink/15 min-w-0 rounded-md border p-5">
         <p className="text-rust mb-4 font-mono text-[10px] font-semibold tracking-[0.18em] uppercase">
           Classification &amp; visibility
         </p>
