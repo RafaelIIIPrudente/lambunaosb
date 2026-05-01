@@ -18,7 +18,7 @@ const ADMIN_ROLES = [
   'liga_president',
 ] as const satisfies readonly Profile['role'][];
 
-export const AUDIT_PAGE_SIZE = 20;
+export const AUDIT_PAGE_SIZE = 10;
 
 export type AuditLogRowData = {
   id: string;

@@ -41,6 +41,24 @@ export async function inviteUser(raw: unknown): Promise<Result<{ userId: string 
     });
 
     if (error || !data.user) {
+      // Failed invites need a trail too — without this, "I sent an invite
+      // and nothing happened" is undebuggable. Common cause: the email is
+      // already an existing auth.users row (Supabase rejects with
+      // "User already registered"), so resendInvite is the right action.
+      await writeAudit({
+        actorId: ctx.userId,
+        actorRole: ctx.profile.role,
+        action: 'user.invite_failed',
+        category: 'user',
+        targetType: 'profile',
+        targetId: parsed.data.email,
+        alert: true,
+        metadata: {
+          email: parsed.data.email,
+          role: parsed.data.role,
+          reason: error?.message ?? 'unknown',
+        },
+      });
       return err(error?.message ?? 'Invite failed.', 'E_INVITE_FAILED');
     }
 
