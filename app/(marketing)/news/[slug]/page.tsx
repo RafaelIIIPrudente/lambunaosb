@@ -16,7 +16,7 @@ import { NewsSharePrint } from '@/components/marketing/news-share-print';
 import { env } from '@/env';
 import { safeBuildtimeQuery } from '@/lib/db/queries/_safe';
 import { getAllPublishedNewsSlugs, getNewsBySlug, type NewsCategory } from '@/lib/db/queries/news';
-import { getCurrentTenant } from '@/lib/db/queries/tenant';
+import { FALLBACK_TENANT, getCurrentTenant } from '@/lib/db/queries/tenant';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getCompressedImageUrl, pickSizeForSurface } from '@/lib/upload/storage-url';
 
@@ -66,7 +66,10 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const [post, tenant] = await Promise.all([getNewsBySlug(slug), getCurrentTenant()]);
+  const [post, tenant] = await Promise.all([
+    safeBuildtimeQuery(() => getNewsBySlug(slug), null),
+    safeBuildtimeQuery(() => getCurrentTenant(), FALLBACK_TENANT),
+  ]);
   if (!post) {
     return {
       title: `Post not found · ${tenant.displayName}`,
@@ -120,7 +123,7 @@ export async function generateMetadata({
 
 export default async function NewsPostPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const post = await getNewsBySlug(slug);
+  const post = await safeBuildtimeQuery(() => getNewsBySlug(slug), null);
   if (!post) notFound();
 
   const supabase = createAdminClient();
@@ -203,10 +206,10 @@ export default async function NewsPostPage({ params }: { params: Promise<{ slug:
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
-      <article className="mx-auto w-full max-w-[860px] px-4 py-12 sm:px-8 md:py-16">
+      <article className="mx-auto w-full max-w-[860px] px-4 pt-28 pb-16 sm:px-8 md:pt-36 md:pb-24">
         <Stagger as="div">
           <StaggerItem>
-            <nav aria-label="Breadcrumb" className="mb-8">
+            <nav aria-label="Breadcrumb" className="mb-10">
               <ol className="text-ink-faint flex items-center gap-2 font-mono text-xs">
                 <li>
                   <Link href="/" className="hover:text-rust">
@@ -235,12 +238,21 @@ export default async function NewsPostPage({ params }: { params: Promise<{ slug:
           </StaggerItem>
 
           <StaggerItem>
-            <h1 className="text-ink font-display text-4xl leading-[1.1] font-bold tracking-tight md:text-5xl">
+            <p className="text-rust mb-4 font-mono text-[11px] font-medium tracking-[0.22em] uppercase">
+              <span className="bg-gold mr-3 inline-block h-px w-8 align-middle" />
+              {CATEGORY_LABELS[post.category]}
+            </p>
+            <h1 className="text-ink font-display text-4xl leading-[1.05] font-bold tracking-tight md:text-5xl lg:text-6xl">
               {post.title}
             </h1>
+            {post.excerpt && (
+              <p className="text-navy-primary font-display mt-6 max-w-[55ch] text-xl leading-relaxed italic md:text-2xl">
+                {post.excerpt}
+              </p>
+            )}
           </StaggerItem>
 
-          <StaggerItem className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <StaggerItem className="border-ink/15 mt-10 flex flex-col gap-4 border-t pt-6 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex items-start gap-3">
               {initials && (
                 <span
@@ -274,7 +286,7 @@ export default async function NewsPostPage({ params }: { params: Promise<{ slug:
         {hasBody ? (
           <FadeUp
             as="div"
-            className="text-navy-primary font-display prose-news mt-10 flex flex-col gap-5 text-lg leading-relaxed italic"
+            className="text-navy-primary font-display prose-news mt-12 flex flex-col gap-6 text-xl leading-relaxed italic md:text-[22px]"
           >
             <MDXRemote
               source={post.bodyMdx}

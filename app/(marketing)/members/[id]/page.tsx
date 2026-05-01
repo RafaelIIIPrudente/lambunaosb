@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils';
 import { safeBuildtimeQuery } from '@/lib/db/queries/_safe';
 import { getAllMemberIds, getMemberById, type CommitteeMembership } from '@/lib/db/queries/members';
 import { getRecentSponsorshipsByMember } from '@/lib/db/queries/resolutions';
-import { getCurrentTenant } from '@/lib/db/queries/tenant';
+import { FALLBACK_TENANT, getCurrentTenant } from '@/lib/db/queries/tenant';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getCompressedImageUrl, pickSizeForSurface } from '@/lib/upload/storage-url';
 
@@ -71,7 +71,10 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const [member, tenant] = await Promise.all([getMemberById(id), getCurrentTenant()]);
+  const [member, tenant] = await Promise.all([
+    safeBuildtimeQuery(() => getMemberById(id), null),
+    safeBuildtimeQuery(() => getCurrentTenant(), FALLBACK_TENANT),
+  ]);
   if (!member) {
     return {
       title: `Member not found · ${tenant.displayName}`,
@@ -131,12 +134,12 @@ export async function generateMetadata({
 
 export default async function MemberDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const member = await getMemberById(id);
+  const member = await safeBuildtimeQuery(() => getMemberById(id), null);
   if (!member || !member.showOnPublic) notFound();
 
   const [tenant, sponsorships] = await Promise.all([
-    getCurrentTenant(),
-    getRecentSponsorshipsByMember(member.id, 5),
+    safeBuildtimeQuery(() => getCurrentTenant(), FALLBACK_TENANT),
+    safeBuildtimeQuery(() => getRecentSponsorshipsByMember(member.id, 5), []),
   ]);
 
   const supabase = createAdminClient();
@@ -187,8 +190,8 @@ export default async function MemberDetailPage({ params }: { params: Promise<{ i
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
 
-      <section className="mx-auto w-full max-w-[1100px] px-4 py-10 sm:px-8 md:py-12">
-        <FadeUp as="nav" aria-label="Breadcrumb" className="mb-8">
+      <section className="mx-auto w-full max-w-[1100px] px-4 pt-28 pb-16 sm:px-8 md:pt-36 md:pb-24">
+        <FadeUp as="nav" aria-label="Breadcrumb" className="mb-10">
           <ol className="text-ink-faint flex flex-wrap items-center gap-2 font-mono text-xs">
             <li>
               <Link href="/" className="hover:text-rust">
@@ -264,10 +267,11 @@ export default async function MemberDetailPage({ params }: { params: Promise<{ i
           {/* Right column — name, badges, bio, activity */}
           <Stagger as="div" className="flex flex-col gap-6">
             <StaggerItem>
-              <p className="text-rust mb-3 font-mono text-[10px] font-medium tracking-[0.22em] uppercase">
+              <p className="text-rust mb-4 font-mono text-[11px] font-medium tracking-[0.22em] uppercase">
+                <span className="bg-gold mr-3 inline-block h-px w-8 align-middle" />
                 {eyebrowParts.join(' · ')}
               </p>
-              <h1 className="text-ink font-display text-5xl leading-tight font-bold tracking-tight md:text-6xl">
+              <h1 className="text-ink font-display text-5xl leading-[0.95] font-bold tracking-tight md:text-6xl lg:text-7xl">
                 {fullName}
               </h1>
             </StaggerItem>
