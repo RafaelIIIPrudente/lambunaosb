@@ -6,11 +6,12 @@ import { PhotoCarousel } from '@/components/marketing/photo-carousel';
 import { DEFAULT_LAMBUNAO_SLIDES } from '@/components/marketing/photo-carousel.data';
 import { FadeUp } from '@/components/motion/fade-up';
 import { Stagger, StaggerItem } from '@/components/motion/stagger';
+import { safeBuildtimeQuery } from '@/lib/db/queries/_safe';
 import { getCommittees } from '@/lib/db/queries/committees';
-import { getCurrentTenant } from '@/lib/db/queries/tenant';
+import { FALLBACK_TENANT, getCurrentTenant } from '@/lib/db/queries/tenant';
 
 export async function generateMetadata(): Promise<Metadata> {
-  const tenant = await getCurrentTenant();
+  const tenant = await safeBuildtimeQuery(() => getCurrentTenant(), FALLBACK_TENANT);
   const title = `Committees · ${tenant.displayName}`;
   const description = `The standing and special committees of the ${tenant.displayName}, organised by jurisdiction and policy focus.`;
   return {
@@ -43,7 +44,10 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function CommitteesPage() {
-  const [committees, tenant] = await Promise.all([getCommittees(), getCurrentTenant()]);
+  const [committees, tenant] = await Promise.all([
+    safeBuildtimeQuery(() => getCommittees(), []),
+    safeBuildtimeQuery(() => getCurrentTenant(), FALLBACK_TENANT),
+  ]);
 
   const standing = committees.filter((c) => c.isStanding);
   const special = committees.filter((c) => !c.isStanding);

@@ -9,8 +9,9 @@ import { PageHero } from '@/components/marketing/page-hero';
 import { Stagger, StaggerItem } from '@/components/motion/stagger';
 import { ImagePlaceholder } from '@/components/ui/image-placeholder';
 import { env } from '@/env';
+import { safeBuildtimeQuery } from '@/lib/db/queries/_safe';
 import { getActiveMembers, type MemberCardData } from '@/lib/db/queries/members';
-import { getCurrentTenant } from '@/lib/db/queries/tenant';
+import { FALLBACK_TENANT, getCurrentTenant } from '@/lib/db/queries/tenant';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getCompressedImageUrl, pickSizeForSurface } from '@/lib/upload/storage-url';
 
@@ -57,8 +58,8 @@ function deriveTermLabel(members: MemberCardData[]): string {
 
 export async function generateMetadata(): Promise<Metadata> {
   const [tenant, members] = await Promise.all([
-    getCurrentTenant(),
-    getActiveMembers({ showOnPublicOnly: true }),
+    safeBuildtimeQuery(() => getCurrentTenant(), FALLBACK_TENANT),
+    safeBuildtimeQuery(() => getActiveMembers({ showOnPublicOnly: true }), []),
   ]);
   const term = deriveTermLabel(members);
   const title = `Members · ${tenant.displayName}`;
@@ -94,8 +95,8 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function MembersPage() {
   const [members, tenant] = await Promise.all([
-    getActiveMembers({ showOnPublicOnly: true }),
-    getCurrentTenant(),
+    safeBuildtimeQuery(() => getActiveMembers({ showOnPublicOnly: true }), []),
+    safeBuildtimeQuery(() => getCurrentTenant(), FALLBACK_TENANT),
   ]);
 
   const supabase = createAdminClient();

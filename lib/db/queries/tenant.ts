@@ -7,6 +7,22 @@ import { tenants, type Tenant } from '@/lib/db/schema';
 
 export const TENANT_SLUG = 'lambunao';
 
+export const FALLBACK_TENANT: Tenant = {
+  id: '00000000-0000-0000-0000-000000000000',
+  slug: TENANT_SLUG,
+  displayName: 'Sangguniang Bayan ng Lambunao',
+  province: 'Iloilo',
+  establishedYear: 1948,
+  contactEmail: 'sb@lambunao.gov.ph',
+  contactPhone: null,
+  dpoEmail: 'dpo@lambunao.gov.ph',
+  officeAddress: null,
+  officeHoursMd: null,
+  sealStoragePath: null,
+  createdAt: new Date(0),
+  updatedAt: new Date(0),
+};
+
 let cachedTenant: Tenant | null = null;
 
 export async function getCurrentTenant(): Promise<Tenant> {

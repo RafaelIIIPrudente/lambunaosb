@@ -12,8 +12,9 @@ import { Stagger, StaggerItem } from '@/components/motion/stagger';
 import { ImagePlaceholder } from '@/components/ui/image-placeholder';
 import { env } from '@/env';
 import { cn } from '@/lib/utils';
+import { safeBuildtimeQuery } from '@/lib/db/queries/_safe';
 import { getPublishedNews, type NewsCategory } from '@/lib/db/queries/news';
-import { getCurrentTenant } from '@/lib/db/queries/tenant';
+import { FALLBACK_TENANT, getCurrentTenant } from '@/lib/db/queries/tenant';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getCompressedImageUrl, pickSizeForSurface } from '@/lib/upload/storage-url';
 
@@ -35,7 +36,7 @@ const FILTER_ACTIVE_CLASS = 'bg-ink text-paper border-ink';
 const FILTER_INACTIVE_CLASS = 'border-ink/30 text-ink hover:border-ink hover:bg-paper-2';
 
 export async function generateMetadata(): Promise<Metadata> {
-  const tenant = await getCurrentTenant();
+  const tenant = await safeBuildtimeQuery(() => getCurrentTenant(), FALLBACK_TENANT);
   const title = `News · ${tenant.displayName}`;
   const description = `Bulletins, public hearings, and announcements from ${tenant.displayName}.`;
   return {
@@ -79,7 +80,10 @@ export default async function NewsPage({
   const { category: rawCategory } = await searchParams;
   const category = rawCategory && isNewsCategory(rawCategory) ? rawCategory : undefined;
 
-  const [items, tenant] = await Promise.all([getPublishedNews({ category }), getCurrentTenant()]);
+  const [items, tenant] = await Promise.all([
+    safeBuildtimeQuery(() => getPublishedNews({ category }), []),
+    safeBuildtimeQuery(() => getCurrentTenant(), FALLBACK_TENANT),
+  ]);
 
   const supabase = createAdminClient();
   const coverUrls = await Promise.all(

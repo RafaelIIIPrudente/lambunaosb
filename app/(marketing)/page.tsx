@@ -17,10 +17,11 @@ import { ImagePlaceholder } from '@/components/ui/image-placeholder';
 import { env } from '@/env';
 import { cn } from '@/lib/utils';
 import { SOCIAL_LINKS } from '@/lib/constants/social';
+import { safeBuildtimeQuery } from '@/lib/db/queries/_safe';
 import { getActiveMembers } from '@/lib/db/queries/members';
 import { getUpcomingMeetings } from '@/lib/db/queries/meetings';
 import { getFeaturedNews } from '@/lib/db/queries/news';
-import { getCurrentTenant } from '@/lib/db/queries/tenant';
+import { FALLBACK_TENANT, getCurrentTenant } from '@/lib/db/queries/tenant';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getCompressedImageUrl, pickSizeForSurface } from '@/lib/upload/storage-url';
 
@@ -47,7 +48,7 @@ const POSITION_LABELS: Record<string, string> = {
 };
 
 export async function generateMetadata(): Promise<Metadata> {
-  const tenant = await getCurrentTenant();
+  const tenant = await safeBuildtimeQuery(() => getCurrentTenant(), FALLBACK_TENANT);
   return {
     title: PAGE_TITLE,
     description: PAGE_DESCRIPTION,
@@ -79,10 +80,10 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function LandingPage() {
   const [featuredNews, upcomingMeetings, allPublicMembers, tenant] = await Promise.all([
-    getFeaturedNews(3),
-    getUpcomingMeetings(1),
-    getActiveMembers({ showOnPublicOnly: true }),
-    getCurrentTenant(),
+    safeBuildtimeQuery(() => getFeaturedNews(3), []),
+    safeBuildtimeQuery(() => getUpcomingMeetings(1), []),
+    safeBuildtimeQuery(() => getActiveMembers({ showOnPublicOnly: true }), []),
+    safeBuildtimeQuery(() => getCurrentTenant(), FALLBACK_TENANT),
   ]);
 
   const previewMembers = allPublicMembers.slice(0, 4);

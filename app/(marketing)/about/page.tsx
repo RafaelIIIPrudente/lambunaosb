@@ -12,8 +12,9 @@ import { FadeUp } from '@/components/motion/fade-up';
 import { Stagger, StaggerItem } from '@/components/motion/stagger';
 import { env } from '@/env';
 import { SOCIAL_LINKS } from '@/lib/constants/social';
+import { safeBuildtimeQuery } from '@/lib/db/queries/_safe';
 import { getActiveMembers } from '@/lib/db/queries/members';
-import { getCurrentTenant } from '@/lib/db/queries/tenant';
+import { FALLBACK_TENANT, getCurrentTenant } from '@/lib/db/queries/tenant';
 import { RETENTION_YEARS } from '@/lib/validators/citizen-query';
 
 const SITE_URL = env.NEXT_PUBLIC_SITE_URL;
@@ -30,7 +31,7 @@ function naturalListJoin(items: string[]): string {
 }
 
 export async function generateMetadata(): Promise<Metadata> {
-  const tenant = await getCurrentTenant();
+  const tenant = await safeBuildtimeQuery(() => getCurrentTenant(), FALLBACK_TENANT);
   const title = `About · ${tenant.displayName}`;
   const description = `About ${tenant.displayName} — our mandate, office, and contacts.`;
   return {
@@ -64,8 +65,11 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function AboutPage() {
   const [tenant, members] = await Promise.all([
-    getCurrentTenant(),
-    getActiveMembers({ excludePositions: ['mayor'], showOnPublicOnly: true }),
+    safeBuildtimeQuery(() => getCurrentTenant(), FALLBACK_TENANT),
+    safeBuildtimeQuery(
+      () => getActiveMembers({ excludePositions: ['mayor'], showOnPublicOnly: true }),
+      [],
+    ),
   ]);
 
   const sbMemberCount = members.filter((m) => m.position === 'sb_member').length;

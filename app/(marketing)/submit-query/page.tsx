@@ -7,14 +7,15 @@ import { ChevronRight, Clock4, Mail, Shield } from 'lucide-react';
 
 import { FadeUp } from '@/components/motion/fade-up';
 import { env } from '@/env';
-import { getCurrentTenant } from '@/lib/db/queries/tenant';
+import { safeBuildtimeQuery } from '@/lib/db/queries/_safe';
+import { FALLBACK_TENANT, getCurrentTenant } from '@/lib/db/queries/tenant';
 
 import { SubmitQueryForm } from './_form';
 
 const SITE_URL = env.NEXT_PUBLIC_SITE_URL;
 
 export async function generateMetadata(): Promise<Metadata> {
-  const tenant = await getCurrentTenant();
+  const tenant = await safeBuildtimeQuery(() => getCurrentTenant(), FALLBACK_TENANT);
   const title = `Submit a query · ${tenant.displayName}`;
   const description = `Send ${tenant.displayName} a question or request. Acknowledged within 24 hours.`;
   return {
