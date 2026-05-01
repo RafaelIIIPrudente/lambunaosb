@@ -8,14 +8,14 @@ import { env } from '@/env';
 import * as schema from './schema';
 
 // Pool sizing: each Node process (Vercel function, build worker, dev server)
-// gets its own pool. Supabase's Session pooler caps at 15 sessions per
-// project — and that cap is shared with Studio, drizzle-kit, and any other
-// process connecting at the same time. max:2 fits ~7 build workers in the
-// 15-slot ceiling and is plenty for a single Vercel function. Switch to the
-// Transaction pooler (port 6543) if you need higher fan-out.
+// gets its own pool. Use Supabase's Transaction pooler (port 6543) — it
+// scales to thousands of concurrent clients because each query borrows and
+// releases a connection immediately. Session pooler (port 5432) caps at 15
+// project-wide and runs out under parallel prerender. max:1 is plenty per
+// worker since RSC fetches are sequential within a render.
 const client = postgres(env.DATABASE_URL, {
   prepare: false,
-  max: 2,
+  max: 1,
 });
 
 export const db = drizzle(client, { schema });
