@@ -2,7 +2,8 @@ import 'server-only';
 
 import type { Metadata } from 'next';
 
-import { DEFAULT_LAMBUNAO_SLIDES, PhotoCarousel } from '@/components/marketing/photo-carousel';
+import { PhotoCarousel } from '@/components/marketing/photo-carousel';
+import { DEFAULT_LAMBUNAO_SLIDES } from '@/components/marketing/photo-carousel.data';
 import { FadeUp } from '@/components/motion/fade-up';
 import { Stagger, StaggerItem } from '@/components/motion/stagger';
 import { getCommittees } from '@/lib/db/queries/committees';
