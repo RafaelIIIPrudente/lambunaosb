@@ -8,6 +8,7 @@ import { ChevronRight } from 'lucide-react';
 import { markCitizenQueryViewed } from '@/app/_actions/citizen-queries';
 import { Badge } from '@/components/ui/badge';
 import { requireUser } from '@/lib/auth/require-user';
+import { safeBuildtimeQuery } from '@/lib/db/queries/_safe';
 import {
   getAdminAssigneeOptions,
   getCitizenQueryById,
@@ -46,7 +47,7 @@ export default async function QueryDetailPage({ params }: { params: Promise<{ id
   const { id } = await params;
   const ctx = await requireUser();
 
-  const query = await getCitizenQueryById(id);
+  const query = await safeBuildtimeQuery(() => getCitizenQueryById(id), null);
   if (!query) notFound();
 
   if (query.status === 'new') {
@@ -54,8 +55,8 @@ export default async function QueryDetailPage({ params }: { params: Promise<{ id
   }
 
   const [replies, assigneeOptions] = await Promise.all([
-    getCitizenQueryReplies(id),
-    getAdminAssigneeOptions(),
+    safeBuildtimeQuery(() => getCitizenQueryReplies(id), []),
+    safeBuildtimeQuery(() => getAdminAssigneeOptions(), []),
   ]);
 
   const canArchive = ARCHIVE_ROLES.has(ctx.profile.role);

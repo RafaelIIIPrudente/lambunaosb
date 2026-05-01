@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { AdminPageHeader } from '@/components/app/admin-page-header';
+import { safeBuildtimeQuery } from '@/lib/db/queries/_safe';
 import { getCommittees } from '@/lib/db/queries/committees';
 
 import { NewsComposerForm } from './_form';
@@ -8,7 +9,7 @@ import { NewsComposerForm } from './_form';
 export const metadata = { title: 'New news post' };
 
 export default async function NewNewsPostPage() {
-  const committees = await getCommittees();
+  const committees = await safeBuildtimeQuery(() => getCommittees(), []);
   const committeeOptions = committees.map((c) => ({
     id: c.id,
     label: c.name,

@@ -7,8 +7,9 @@ import { ChevronRight } from 'lucide-react';
 
 import { requireUser } from '@/lib/auth/require-user';
 import { db } from '@/lib/db';
+import { safeBuildtimeQuery } from '@/lib/db/queries/_safe';
 import { getCommittees } from '@/lib/db/queries/committees';
-import { getCurrentTenantId } from '@/lib/db/queries/tenant';
+import { FALLBACK_TENANT, getCurrentTenantId } from '@/lib/db/queries/tenant';
 import { newsPosts } from '@/lib/db/schema';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getCompressedImageUrl, pickSizeForSurface } from '@/lib/upload/storage-url';
@@ -25,12 +26,19 @@ export default async function EditNewsPostPage({ params }: { params: Promise<{ i
   const { id } = await params;
   const ctx = await requireUser();
 
-  const tenantId = await getCurrentTenantId();
-  const [post] = await db
-    .select()
-    .from(newsPosts)
-    .where(and(eq(newsPosts.tenantId, tenantId), eq(newsPosts.id, id), isNull(newsPosts.deletedAt)))
-    .limit(1);
+  const tenantId = await safeBuildtimeQuery(() => getCurrentTenantId(), FALLBACK_TENANT.id);
+  const post = await safeBuildtimeQuery(
+    () =>
+      db
+        .select()
+        .from(newsPosts)
+        .where(
+          and(eq(newsPosts.tenantId, tenantId), eq(newsPosts.id, id), isNull(newsPosts.deletedAt)),
+        )
+        .limit(1)
+        .then((rows) => rows[0] ?? null),
+    null,
+  );
   if (!post) notFound();
 
   const isAuthor = post.authorId === ctx.userId;
@@ -62,7 +70,7 @@ export default async function EditNewsPostPage({ params }: { params: Promise<{ i
         };
       }),
     ),
-    getCommittees(),
+    safeBuildtimeQuery(() => getCommittees(), []),
   ]);
 
   const committeeOptions = committees.map((c) => ({

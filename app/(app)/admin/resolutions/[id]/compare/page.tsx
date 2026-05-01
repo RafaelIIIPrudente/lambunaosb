@@ -9,6 +9,7 @@ import { ArrowLeft, ChevronRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardEyebrow, CardFooter, CardTitle } from '@/components/ui/card';
+import { safeBuildtimeQuery } from '@/lib/db/queries/_safe';
 import { getResolutionById, getResolutionVersionById } from '@/lib/db/queries/resolutions';
 import { cn } from '@/lib/utils';
 
@@ -50,7 +51,7 @@ export default async function CompareVersionsPage({
   const { id } = await params;
   const { from, to } = await searchParams;
 
-  const resolution = await getResolutionById(id);
+  const resolution = await safeBuildtimeQuery(() => getResolutionById(id), null);
   if (!resolution) notFound();
 
   if (!from || !to) {
@@ -58,8 +59,8 @@ export default async function CompareVersionsPage({
   }
 
   const [fromVersion, toVersion] = await Promise.all([
-    getResolutionVersionById(resolution.id, from),
-    getResolutionVersionById(resolution.id, to),
+    safeBuildtimeQuery(() => getResolutionVersionById(resolution.id, from), null),
+    safeBuildtimeQuery(() => getResolutionVersionById(resolution.id, to), null),
   ]);
 
   if (!fromVersion || !toVersion) {

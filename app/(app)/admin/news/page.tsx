@@ -9,6 +9,7 @@ import { AdminPageHeader } from '@/components/app/admin-page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardEyebrow, CardFooter, CardTitle } from '@/components/ui/card';
+import { safeBuildtimeQuery } from '@/lib/db/queries/_safe';
 import { getAdminNewsList, getNewsCommittees } from '@/lib/db/queries/news';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getCompressedImageUrl, pickSizeForSurface } from '@/lib/upload/storage-url';
@@ -59,8 +60,11 @@ export default async function NewsAdminPage({
   const committeeParam = params.committee?.trim() ?? '';
 
   const [allRows, committees] = await Promise.all([
-    getAdminNewsList(committeeParam ? { committeeId: committeeParam } : {}),
-    getNewsCommittees(),
+    safeBuildtimeQuery(
+      () => getAdminNewsList(committeeParam ? { committeeId: committeeParam } : {}),
+      [],
+    ),
+    safeBuildtimeQuery(() => getNewsCommittees(), []),
   ]);
   const rows = filter === 'all' ? allRows : allRows.filter((r) => r.status === filter);
 

@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardEyebrow, CardFooter, CardTitle } from '@/components/ui/card';
 import { requireUser } from '@/lib/auth/require-user';
+import { safeBuildtimeQuery } from '@/lib/db/queries/_safe';
 import { getUsers, getUserStatusCounts } from '@/lib/db/queries/users';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { cn } from '@/lib/utils';
@@ -89,14 +90,24 @@ export default async function UsersPage({
   const cursorDate = parseCursor(filters.cursor ?? undefined);
 
   const [{ rows, nextCursor }, statusCounts] = await Promise.all([
-    getUsers({
-      role: filters.role,
-      activity: filters.activity,
-      invitation: filters.invitation,
-      q: filters.q,
-      cursor: cursorDate,
+    safeBuildtimeQuery(
+      () =>
+        getUsers({
+          role: filters.role,
+          activity: filters.activity,
+          invitation: filters.invitation,
+          q: filters.q,
+          cursor: cursorDate,
+        }),
+      { rows: [], nextCursor: null },
+    ),
+    safeBuildtimeQuery(() => getUserStatusCounts(), {
+      total: 0,
+      active: 0,
+      inactive: 0,
+      pending: 0,
+      pendingApproval: 0,
     }),
-    getUserStatusCounts(),
   ]);
 
   const adminClient = createAdminClient();

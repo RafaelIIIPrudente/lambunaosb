@@ -11,9 +11,10 @@ import { Card, CardDescription, CardEyebrow, CardFooter, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { requireUser } from '@/lib/auth/require-user';
 import { db } from '@/lib/db';
+import { safeBuildtimeQuery } from '@/lib/db/queries/_safe';
 import { getMeetingById } from '@/lib/db/queries/meetings';
 import { getActiveMembers } from '@/lib/db/queries/members';
-import { getCurrentTenantId } from '@/lib/db/queries/tenant';
+import { FALLBACK_TENANT, getCurrentTenantId } from '@/lib/db/queries/tenant';
 import { meetingMinutes, type MinutesItemOfBusiness, newsPosts } from '@/lib/db/schema';
 import type { MinutesStatusValue } from '@/lib/validators/minutes';
 
@@ -25,21 +26,26 @@ export const metadata = { title: 'Minutes' };
 export default async function MinutesPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const ctx = await requireUser();
-  const meeting = await getMeetingById(id);
+  const meeting = await safeBuildtimeQuery(() => getMeetingById(id), null);
   if (!meeting) notFound();
 
-  const tenantId = await getCurrentTenantId();
-  const [minutes] = await db
-    .select()
-    .from(meetingMinutes)
-    .where(
-      and(
-        eq(meetingMinutes.tenantId, tenantId),
-        eq(meetingMinutes.meetingId, id),
-        isNull(meetingMinutes.deletedAt),
-      ),
-    )
-    .limit(1);
+  const tenantId = await safeBuildtimeQuery(() => getCurrentTenantId(), FALLBACK_TENANT.id);
+  const minutes = await safeBuildtimeQuery(
+    () =>
+      db
+        .select()
+        .from(meetingMinutes)
+        .where(
+          and(
+            eq(meetingMinutes.tenantId, tenantId),
+            eq(meetingMinutes.meetingId, id),
+            isNull(meetingMinutes.deletedAt),
+          ),
+        )
+        .limit(1)
+        .then((rows) => rows[0] ?? null),
+    null,
+  );
 
   if (!minutes) {
     return (
@@ -82,17 +88,22 @@ export default async function MinutesPage({ params }: { params: Promise<{ id: st
     );
   }
 
-  const members = await getActiveMembers();
+  const members = await safeBuildtimeQuery(() => getActiveMembers(), []);
 
   // Resolve linked news post slug if published.
   let publishedNewsPostSlug: string | null = null;
   if (minutes.publishedNewsPostId) {
-    const [post] = await db
-      .select({ slug: newsPosts.slug })
-      .from(newsPosts)
-      .where(eq(newsPosts.id, minutes.publishedNewsPostId))
-      .limit(1);
-    publishedNewsPostSlug = post?.slug ?? null;
+    const publishedNewsPostId = minutes.publishedNewsPostId;
+    publishedNewsPostSlug = await safeBuildtimeQuery(
+      () =>
+        db
+          .select({ slug: newsPosts.slug })
+          .from(newsPosts)
+          .where(eq(newsPosts.id, publishedNewsPostId))
+          .limit(1)
+          .then((rows) => rows[0]?.slug ?? null),
+      null,
+    );
   }
 
   const canEdit =

@@ -10,8 +10,9 @@ import { Button } from '@/components/ui/button';
 import { MeetingAudioUpload } from '@/components/app/meeting-audio-upload';
 import { MeetingRecorder } from '@/components/app/meeting-recorder';
 import { requireUser } from '@/lib/auth/require-user';
+import { safeBuildtimeQuery } from '@/lib/db/queries/_safe';
 import { getMeetingById } from '@/lib/db/queries/meetings';
-import { getCurrentTenantId } from '@/lib/db/queries/tenant';
+import { FALLBACK_TENANT, getCurrentTenantId } from '@/lib/db/queries/tenant';
 import {
   MEETING_STATUS_LABELS,
   MEETING_TYPE_LABELS,
@@ -76,7 +77,10 @@ function formatDuration(ms: number | null): string | null {
 export default async function MeetingDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const ctx = await requireUser();
-  const [meeting, tenantId] = await Promise.all([getMeetingById(id), getCurrentTenantId()]);
+  const [meeting, tenantId] = await Promise.all([
+    safeBuildtimeQuery(() => getMeetingById(id), null),
+    safeBuildtimeQuery(() => getCurrentTenantId(), FALLBACK_TENANT.id),
+  ]);
   if (!meeting) notFound();
 
   const audioLength = formatDuration(meeting.audioDurationMs);

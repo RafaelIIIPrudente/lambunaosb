@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 import { AdminPageHeader } from '@/components/app/admin-page-header';
 import { Badge } from '@/components/ui/badge';
 import { requireUser } from '@/lib/auth/require-user';
+import { safeBuildtimeQuery } from '@/lib/db/queries/_safe';
 import { getCurrentProfile, getCurrentTenant } from '@/lib/db/queries/settings';
 import { cn } from '@/lib/utils';
 import {
@@ -36,11 +37,11 @@ type Section = {
 
 export default async function SettingsPage() {
   const ctx = await requireUser();
-  const profile = await getCurrentProfile(ctx.userId);
+  const profile = await safeBuildtimeQuery(() => getCurrentProfile(ctx.userId), null);
   if (!profile) notFound();
 
   const isSecretary = ctx.profile.role === 'secretary';
-  const tenant = isSecretary ? await getCurrentTenant() : null;
+  const tenant = isSecretary ? await safeBuildtimeQuery(() => getCurrentTenant(), null) : null;
 
   const profileDefaults: UpdateProfileInput = {
     fullName: profile.fullName,

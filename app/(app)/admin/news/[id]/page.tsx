@@ -10,7 +10,8 @@ import { ChevronRight, ImageIcon, Pin } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { requireUser } from '@/lib/auth/require-user';
 import { db } from '@/lib/db';
-import { getCurrentTenantId } from '@/lib/db/queries/tenant';
+import { safeBuildtimeQuery } from '@/lib/db/queries/_safe';
+import { FALLBACK_TENANT, getCurrentTenantId } from '@/lib/db/queries/tenant';
 import { committees, newsPosts, profiles } from '@/lib/db/schema';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getCompressedImageUrl, pickSizeForSurface } from '@/lib/upload/storage-url';
@@ -34,19 +35,26 @@ const STATUS_BADGE_VARIANT = {
 export default async function NewsPostDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const ctx = await requireUser();
-  const tenantId = await getCurrentTenantId();
+  const tenantId = await safeBuildtimeQuery(() => getCurrentTenantId(), FALLBACK_TENANT.id);
 
-  const [row] = await db
-    .select({
-      post: newsPosts,
-      authorName: profiles.fullName,
-      committeeName: committees.name,
-    })
-    .from(newsPosts)
-    .leftJoin(profiles, eq(profiles.id, newsPosts.authorId))
-    .leftJoin(committees, eq(committees.id, newsPosts.committeeId))
-    .where(and(eq(newsPosts.tenantId, tenantId), eq(newsPosts.id, id), isNull(newsPosts.deletedAt)))
-    .limit(1);
+  const row = await safeBuildtimeQuery(
+    () =>
+      db
+        .select({
+          post: newsPosts,
+          authorName: profiles.fullName,
+          committeeName: committees.name,
+        })
+        .from(newsPosts)
+        .leftJoin(profiles, eq(profiles.id, newsPosts.authorId))
+        .leftJoin(committees, eq(committees.id, newsPosts.committeeId))
+        .where(
+          and(eq(newsPosts.tenantId, tenantId), eq(newsPosts.id, id), isNull(newsPosts.deletedAt)),
+        )
+        .limit(1)
+        .then((rows) => rows[0] ?? null),
+    null,
+  );
   if (!row) notFound();
 
   const post = row.post;
