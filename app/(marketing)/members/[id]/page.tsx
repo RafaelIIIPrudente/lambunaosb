@@ -272,8 +272,11 @@ export default async function MemberDetailPage({ params }: { params: Promise<{ i
               </h1>
             </StaggerItem>
 
-            {member.committeeAssignments.length > 0 && (
-              <StaggerItem>
+            <StaggerItem as="section">
+              <p className="text-rust mb-4 font-mono text-[10px] font-medium tracking-[0.18em] uppercase">
+                Committees
+              </p>
+              {member.committeeAssignments.length > 0 ? (
                 <ul className="flex flex-wrap gap-2">
                   {member.committeeAssignments.map((assignment) => (
                     <li key={assignment.committee.id}>
@@ -286,8 +289,12 @@ export default async function MemberDetailPage({ params }: { params: Promise<{ i
                     </li>
                   ))}
                 </ul>
-              </StaggerItem>
-            )}
+              ) : (
+                <p className="text-ink-soft font-display text-base italic">
+                  No committee assignments yet.
+                </p>
+              )}
+            </StaggerItem>
 
             <StaggerItem as="section">
               <p className="text-rust mb-3 font-mono text-[10px] font-medium tracking-[0.18em] uppercase">

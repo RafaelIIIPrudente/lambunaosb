@@ -78,7 +78,7 @@ export default async function LandingPage() {
   const [featuredNews, upcomingMeetings, allPublicMembers, tenant] = await Promise.all([
     getFeaturedNews(3),
     getUpcomingMeetings(1),
-    getActiveMembers({ excludePositions: ['mayor'], showOnPublicOnly: true }),
+    getActiveMembers({ showOnPublicOnly: true }),
     getCurrentTenant(),
   ]);
 
@@ -436,6 +436,11 @@ export default async function LandingPage() {
                         <h3 className="text-ink font-display group-hover/member:text-rust text-base leading-snug font-semibold">
                           {member.honorific} {member.fullName}
                         </h3>
+                        {member.committees.length > 0 && (
+                          <p className="text-ink-faint mt-1 line-clamp-2 font-mono text-[11px] leading-snug">
+                            {member.committees.join(' · ')}
+                          </p>
+                        )}
                       </div>
                     </Link>
                   </StaggerItem>

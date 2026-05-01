@@ -50,7 +50,7 @@ function deriveTermLabel(members: MemberCardData[]): string {
 export async function generateMetadata(): Promise<Metadata> {
   const [tenant, members] = await Promise.all([
     getCurrentTenant(),
-    getActiveMembers({ excludePositions: ['mayor'], showOnPublicOnly: true }),
+    getActiveMembers({ showOnPublicOnly: true }),
   ]);
   const term = deriveTermLabel(members);
   const title = `Members · ${tenant.displayName}`;
@@ -86,7 +86,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function MembersPage() {
   const [members, tenant] = await Promise.all([
-    getActiveMembers({ excludePositions: ['mayor'], showOnPublicOnly: true }),
+    getActiveMembers({ showOnPublicOnly: true }),
     getCurrentTenant(),
   ]);
 
