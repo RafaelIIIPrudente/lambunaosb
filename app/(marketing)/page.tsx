@@ -46,7 +46,6 @@ const POSITION_LABELS: Record<string, string> = {
 export async function generateMetadata(): Promise<Metadata> {
   const tenant = await getCurrentTenant();
   return {
-    metadataBase: new URL(SITE_URL),
     title: PAGE_TITLE,
     description: PAGE_DESCRIPTION,
     alternates: { canonical: '/' },

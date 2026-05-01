@@ -69,7 +69,6 @@ export async function generateMetadata({
   const [post, tenant] = await Promise.all([getNewsBySlug(slug), getCurrentTenant()]);
   if (!post) {
     return {
-      metadataBase: new URL(SITE_URL),
       title: `Post not found · ${tenant.displayName}`,
       robots: { index: false, follow: false },
     };
@@ -96,7 +95,6 @@ export async function generateMetadata({
       };
 
   return {
-    metadataBase: new URL(SITE_URL),
     title,
     description,
     alternates: { canonical: `/news/${slug}` },

@@ -16,7 +16,6 @@ export async function generateMetadata(): Promise<Metadata> {
   const title = `Submit a query · ${tenant.displayName}`;
   const description = `Send ${tenant.displayName} a question or request. Acknowledged within 24 hours.`;
   return {
-    metadataBase: new URL(SITE_URL),
     title,
     description,
     alternates: { canonical: '/submit-query' },

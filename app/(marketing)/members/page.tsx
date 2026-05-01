@@ -56,7 +56,6 @@ export async function generateMetadata(): Promise<Metadata> {
   const title = `Members · ${tenant.displayName}`;
   const description = `Meet the elected members of ${tenant.displayName} serving the ${term} term.`;
   return {
-    metadataBase: new URL(SITE_URL),
     title,
     description,
     alternates: { canonical: '/members' },

@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import { Inter, Fraunces, Caveat, Geist_Mono } from 'next/font/google';
 import './globals.css';
 
+import { env } from '@/env';
+
 const inter = Inter({
   variable: '--font-inter',
   subsets: ['latin'],
@@ -43,7 +45,7 @@ export const metadata: Metadata = {
     'Official site of the Sangguniang Bayan ng Lambunao — Lambunao, Iloilo, Philippines. News, members, resolutions, and citizen services.',
   applicationName: 'SB Lambunao',
   authors: [{ name: 'Sangguniang Bayan ng Lambunao' }],
-  metadataBase: new URL('https://lambunao.gov.ph'),
+  metadataBase: new URL(env.NEXT_PUBLIC_SITE_URL),
 };
 
 export default function RootLayout({

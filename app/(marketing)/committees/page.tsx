@@ -4,18 +4,14 @@ import type { Metadata } from 'next';
 
 import { FadeUp } from '@/components/motion/fade-up';
 import { Stagger, StaggerItem } from '@/components/motion/stagger';
-import { env } from '@/env';
 import { getCommittees } from '@/lib/db/queries/committees';
 import { getCurrentTenant } from '@/lib/db/queries/tenant';
-
-const SITE_URL = env.NEXT_PUBLIC_SITE_URL;
 
 export async function generateMetadata(): Promise<Metadata> {
   const tenant = await getCurrentTenant();
   const title = `Committees · ${tenant.displayName}`;
   const description = `The standing and special committees of the ${tenant.displayName}, organised by jurisdiction and policy focus.`;
   return {
-    metadataBase: new URL(SITE_URL),
     title,
     description,
     alternates: { canonical: '/committees' },

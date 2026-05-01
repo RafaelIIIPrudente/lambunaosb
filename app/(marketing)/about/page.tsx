@@ -33,7 +33,6 @@ export async function generateMetadata(): Promise<Metadata> {
   const title = `About · ${tenant.displayName}`;
   const description = `About ${tenant.displayName} — our mandate, office, and contacts.`;
   return {
-    metadataBase: new URL(SITE_URL),
     title,
     description,
     alternates: { canonical: '/about' },

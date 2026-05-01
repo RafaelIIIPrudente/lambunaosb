@@ -74,7 +74,6 @@ export async function generateMetadata({
   const [member, tenant] = await Promise.all([getMemberById(id), getCurrentTenant()]);
   if (!member) {
     return {
-      metadataBase: new URL(SITE_URL),
       title: `Member not found · ${tenant.displayName}`,
       robots: { index: false, follow: false },
     };
@@ -104,7 +103,6 @@ export async function generateMetadata({
       };
 
   const base: Metadata = {
-    metadataBase: new URL(SITE_URL),
     title,
     description,
     alternates: { canonical: `/members/${id}` },
