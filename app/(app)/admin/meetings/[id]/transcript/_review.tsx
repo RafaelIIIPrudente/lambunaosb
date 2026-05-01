@@ -331,11 +331,11 @@ export function TranscriptReview({
               <li
                 key={seg.id}
                 className={cn(
-                  'grid grid-cols-[auto_120px_1fr_140px] items-start gap-3 p-3 transition-colors',
+                  'flex flex-col gap-3 p-3 transition-colors md:grid md:grid-cols-[auto_140px_1fr_140px] md:items-start',
                   isSelected && 'bg-rust/5',
                 )}
               >
-                <div className="flex h-full flex-col items-center gap-2 pt-1">
+                <div className="flex items-center gap-2 md:h-full md:flex-col md:items-center md:pt-1">
                   {!isLocked && (
                     <input
                       type="checkbox"
@@ -376,7 +376,7 @@ export function TranscriptReview({
                   onBlur={(e) => handleTextBlur(seg, e)}
                   disabled={isLocked}
                   rows={Math.max(2, Math.min(6, Math.ceil(seg.text.length / 80)))}
-                  className="border-ink/20 bg-paper text-ink focus-visible:border-rust focus-visible:ring-rust/40 disabled:bg-paper-2/40 mt-5 w-full resize-y rounded-md border px-3 py-2 text-sm leading-relaxed transition-colors outline-none focus-visible:ring-2"
+                  className="border-ink/20 bg-paper text-ink focus-visible:border-rust focus-visible:ring-rust/40 disabled:bg-paper-2/40 w-full resize-y rounded-md border px-3 py-2 text-sm leading-relaxed transition-colors outline-none focus-visible:ring-2 md:mt-5"
                   aria-label="Segment text"
                 />
 

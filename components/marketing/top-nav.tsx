@@ -35,7 +35,7 @@ export function PublicTopNav() {
 
   return (
     <header className="border-ink/12 bg-paper sticky top-0 z-30 border-b">
-      <div className="mx-auto flex max-w-[1200px] items-center gap-6 px-4 py-3 sm:px-8">
+      <div className="mx-auto flex max-w-[1200px] items-center gap-3 px-4 py-3 sm:gap-6 sm:px-8">
         {/* Mobile menu trigger */}
         <Sheet>
           <SheetTrigger asChild>
@@ -91,11 +91,11 @@ export function PublicTopNav() {
             priority
             className="size-9 shrink-0 rounded-full"
           />
-          <div className="hidden min-w-0 flex-col leading-tight sm:flex">
-            <span className="font-script text-ink text-xl leading-none break-words">
+          <div className="flex min-w-0 flex-col leading-tight">
+            <span className="font-script text-ink text-base leading-none break-words sm:text-xl">
               Sangguniang Bayan
             </span>
-            <span className="text-ink-faint font-mono text-[11px] tracking-wide break-words">
+            <span className="text-ink-faint hidden font-mono text-[11px] tracking-wide break-words sm:block">
               Municipality of Lambunao, Iloilo
             </span>
           </div>

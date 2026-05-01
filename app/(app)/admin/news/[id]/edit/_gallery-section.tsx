@@ -190,9 +190,9 @@ export function GallerySection({ postId, tenantId, initialPhotos, canEdit }: Pro
   const canAddMore = canEdit && photos.length < MAX_GALLERY_PHOTOS;
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex min-w-0 flex-col gap-3">
       <header className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-ink-soft font-mono text-[11px]">
+        <p className="text-ink-soft font-mono text-[11px] break-words">
           {photos.length} / {MAX_GALLERY_PHOTOS} photos · array order = display order
         </p>
         {canAddMore && (

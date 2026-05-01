@@ -22,6 +22,8 @@ import { FALLBACK_TENANT, getCurrentTenant } from '@/lib/db/queries/tenant';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getCompressedImageUrl, pickSizeForSurface } from '@/lib/upload/storage-url';
 
+export const revalidate = 1800;
+
 const SITE_URL = env.NEXT_PUBLIC_SITE_URL;
 
 const POSITION_LABELS: Record<string, string> = {
@@ -218,7 +220,7 @@ export default async function MemberDetailPage({ params }: { params: Promise<{ i
         <div className="grid gap-10 md:grid-cols-[280px_1fr] md:gap-12">
           {/* Left column — portrait + office */}
           <FadeUp as="aside" delay={0.1} className="flex flex-col gap-5">
-            <div className="border-ink/30 rounded-md border border-dashed p-1.5">
+            <div className="border-ink/30 mx-auto w-full max-w-[220px] rounded-md border border-dashed p-1.5 md:max-w-none">
               {photoUrl ? (
                 <div className="bg-paper-2 relative aspect-[3/4] w-full overflow-hidden rounded-md transition-transform duration-300 hover:scale-[1.01]">
                   <Image
@@ -271,7 +273,7 @@ export default async function MemberDetailPage({ params }: { params: Promise<{ i
                 <span className="bg-gold mr-3 inline-block h-px w-8 align-middle" />
                 {eyebrowParts.join(' · ')}
               </p>
-              <h1 className="text-ink font-display text-5xl leading-[0.95] font-bold tracking-tight break-words md:text-6xl lg:text-7xl">
+              <h1 className="text-ink font-display text-3xl leading-[1.05] font-bold tracking-tight break-words sm:text-4xl md:text-5xl md:leading-[0.95] lg:text-6xl">
                 {fullName}
               </h1>
             </StaggerItem>

@@ -3,7 +3,7 @@ import 'server-only';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { format } from 'date-fns';
-import { ChevronRight, FileText } from 'lucide-react';
+import { ChevronRight, FileText, Lock } from 'lucide-react';
 
 import { AdminPageHeader } from '@/components/app/admin-page-header';
 import { Card, CardDescription, CardEyebrow, CardFooter, CardTitle } from '@/components/ui/card';
@@ -102,8 +102,12 @@ export default async function TranscriptReviewPage({
   const stats = computeTranscriptStats(transcriptData);
   const members = await safeBuildtimeQuery(() => getActiveMembers(), []);
 
-  const canEdit = EDIT_ROLES.includes(ctx.profile.role);
-  const canApprove = APPROVE_ROLES.includes(ctx.profile.role);
+  // Once minutes are published the transcript is the historical source-of-truth
+  // backing them — editing it post-publication would silently desync the two.
+  // Force read-only regardless of role.
+  const isMinutesPublished = meeting.status === 'minutes_published';
+  const canEdit = !isMinutesPublished && EDIT_ROLES.includes(ctx.profile.role);
+  const canApprove = !isMinutesPublished && APPROVE_ROLES.includes(ctx.profile.role);
 
   return (
     <div>
@@ -166,6 +170,19 @@ export default async function TranscriptReviewPage({
           </dd>
         </div>
       </dl>
+
+      {isMinutesPublished && (
+        <div className="border-success/40 bg-success/5 mb-6 rounded-md border p-4">
+          <p className="text-success flex items-center gap-2 font-mono text-[10px] font-semibold tracking-[0.18em] uppercase">
+            <Lock className="size-3" aria-hidden="true" />
+            Read-only · minutes published
+          </p>
+          <p className="text-ink mt-2 text-sm">
+            This transcript is the historical record backing the published minutes. Edits are
+            disabled to keep the two in sync.
+          </p>
+        </div>
+      )}
 
       {transcriptData.transcript.status === 'asr_failed' && (
         <div className="border-warn/40 bg-warn/5 mb-6 rounded-md border p-4">

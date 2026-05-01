@@ -15,6 +15,8 @@ import { FALLBACK_TENANT, getCurrentTenant } from '@/lib/db/queries/tenant';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getCompressedImageUrl, pickSizeForSurface } from '@/lib/upload/storage-url';
 
+export const revalidate = 1800;
+
 const SITE_URL = env.NEXT_PUBLIC_SITE_URL;
 
 const POSITION_LABELS: Record<string, string> = {
@@ -159,7 +161,7 @@ export default async function MembersPage() {
             ? `Composed of the Vice Mayor (presiding officer) and ${sbMemberCount} elected members serving three-year terms.`
             : `Composed of ${sbMemberCount} elected members serving three-year terms.`
         }
-        caption="Plaza Rizal · Lambunao"
+        caption="Lambunao"
       />
 
       <section className="bg-paper">
@@ -173,7 +175,7 @@ export default async function MembersPage() {
           ) : (
             <Stagger
               as="ul"
-              className="grid gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+              className="grid grid-cols-2 gap-x-3 gap-y-10 sm:gap-x-6 sm:gap-y-12 lg:grid-cols-3 xl:grid-cols-4"
             >
               {sortedMembers.map((member) => {
                 const photoUrl = memberPhotoById.get(member.id);

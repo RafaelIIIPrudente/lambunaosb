@@ -25,6 +25,10 @@ import { FALLBACK_TENANT, getCurrentTenant } from '@/lib/db/queries/tenant';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getCompressedImageUrl, pickSizeForSurface } from '@/lib/upload/storage-url';
 
+// Revalidate every 30 min. Signed URLs use a 2h TTL (lib/supabase/signed-urls),
+// so cached HTML always points at URLs that are still valid.
+export const revalidate = 1800;
+
 const SITE_URL = env.NEXT_PUBLIC_SITE_URL;
 const PAGE_TITLE = 'Sangguniang Bayan ng Lambunao | Official Site';
 const PAGE_DESCRIPTION =
@@ -492,7 +496,7 @@ export default async function LandingPage() {
             <Stagger as="div" className="grid gap-10 lg:grid-cols-[300px_1fr] lg:gap-12">
               {/* Lead member */}
               {leadMember && (
-                <StaggerItem className="min-w-0">
+                <StaggerItem className="mx-auto w-full max-w-[260px] min-w-0 lg:max-w-none">
                   <Link
                     href={`/members/${leadMember.id}`}
                     className="group/lead border-ink/25 hover:border-ink/45 focus-visible:ring-rust bg-paper relative flex min-w-0 flex-col gap-4 rounded-md border border-dashed p-1.5 transition-colors focus-visible:ring-2 focus-visible:outline-none"

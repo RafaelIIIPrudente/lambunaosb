@@ -113,7 +113,7 @@ export default async function AboutPage() {
 
       <PageHero
         src="/lambunao/plaza-church.png"
-        alt="Plaza Rizal and the parish church at the heart of Lambunao"
+        alt="Plaza and the parish church at the heart of Lambunao"
         eyebrow={`About${tenant.establishedYear ? ` · Established ${tenant.establishedYear}` : ''}`}
         title={
           <>
@@ -121,7 +121,7 @@ export default async function AboutPage() {
           </>
         }
         lede="Twenty-two committees. Weekly sessions. One mandate — to faithfully represent every Lambunaonon."
-        caption="Plaza Rizal · Brgy. Poblacion"
+        caption="Plaza · Brgy. Poblacion"
       />
 
       <section className="bg-paper">

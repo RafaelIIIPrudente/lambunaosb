@@ -112,7 +112,7 @@ export function PhotoCarousel({
     >
       <div className="grid gap-6 lg:grid-cols-[1fr_320px] lg:gap-8">
         {/* FEATURED PHOTO */}
-        <div className="border-ink/25 rounded-md border border-dashed p-1.5">
+        <div className="border-ink/25 relative min-w-0 rounded-md border border-dashed p-1.5">
           <div className="bg-paper-2 relative aspect-[4/3] w-full overflow-hidden rounded-md">
             {slides.map((slide, idx) => {
               const isActive = idx === active;
@@ -140,10 +140,31 @@ export function PhotoCarousel({
               );
             })}
           </div>
+
+          {/* Mobile overlay prev/next — keeps slide controls visible on small screens
+              where the chrome column is below the photo + thumb strip. */}
+          <div className="pointer-events-none absolute inset-x-3 bottom-4 z-20 flex items-center justify-between lg:hidden">
+            <button
+              type="button"
+              onClick={goPrev}
+              aria-label="Previous slide"
+              className="bg-paper/90 text-ink hover:bg-paper hover:text-rust focus-visible:ring-rust/60 pointer-events-auto inline-flex size-11 items-center justify-center rounded-full shadow-md backdrop-blur transition-colors outline-none focus-visible:ring-2"
+            >
+              <ChevronLeft className="size-5" />
+            </button>
+            <button
+              type="button"
+              onClick={goNext}
+              aria-label="Next slide"
+              className="bg-paper/90 text-ink hover:bg-paper hover:text-rust focus-visible:ring-rust/60 pointer-events-auto inline-flex size-11 items-center justify-center rounded-full shadow-md backdrop-blur transition-colors outline-none focus-visible:ring-2"
+            >
+              <ChevronRight className="size-5" />
+            </button>
+          </div>
         </div>
 
         {/* CHROME COLUMN */}
-        <div className="flex flex-col gap-6">
+        <div className="flex min-w-0 flex-col gap-6">
           {/* Eyebrow + counter */}
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-rust font-mono text-[11px] font-medium tracking-[0.22em] uppercase">
