@@ -28,12 +28,15 @@ export async function compressImage(
 ): Promise<CompressImageResult> {
   const initialQuality = opts.quality ?? DEFAULT_QUALITY;
 
-  // Process largest → smallest so we can drop a smaller-target variant whose
-  // produced bytes are not actually smaller than the next-larger one we kept.
-  // Defensive: a 600 px source re-encoded at WebP/q72 may produce identical
-  // bytes for the 800 and 1600 targets; in that case shipping both is waste.
+  // Process largest → smallest. Keep a variant when its bytes are <= the
+  // smallest already-kept (so a strictly-smaller variant always wins, but a
+  // tied byte-size variant is still kept). Tied bytes happen when the source
+  // is small enough that downscaling doesn't actually shrink the encoded
+  // output — every consumer surface (thumb/inline/hero) still needs a file
+  // at its requested size, so we'd rather store a few duplicate KB than
+  // 404 the lookup.
   const kept: ImageVariant[] = [];
-  let largestKeptBytes = Number.POSITIVE_INFINITY;
+  let smallestKeptBytes = Number.POSITIVE_INFINITY;
 
   for (const size of VARIANT_SIZES_LARGEST_FIRST) {
     const blob = await imageCompression(file, {
@@ -43,9 +46,9 @@ export async function compressImage(
       initialQuality,
       alwaysKeepResolution: false,
     });
-    if (blob.size < largestKeptBytes) {
+    if (blob.size <= smallestKeptBytes) {
       kept.push({ size, blob, byteSize: blob.size });
-      largestKeptBytes = blob.size;
+      smallestKeptBytes = blob.size;
     }
   }
 

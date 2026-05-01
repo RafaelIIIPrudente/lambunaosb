@@ -85,7 +85,7 @@ export default async function MembersAdminPage() {
           </CardFooter>
         </Card>
       ) : (
-        <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <ul className="flex flex-wrap gap-5">
           {rows.map((m) => {
             const initials = m.fullName
               .split(/\s+/)
@@ -96,7 +96,7 @@ export default async function MembersAdminPage() {
               .toUpperCase();
             const portraitUrl = signedUrlByMemberId.get(m.id);
             return (
-              <li key={m.id}>
+              <li key={m.id} className="w-full sm:w-[230px]">
                 <article
                   className={cn(
                     'border-ink/15 hover:border-ink/40 flex flex-col rounded-md border p-4 transition-colors',

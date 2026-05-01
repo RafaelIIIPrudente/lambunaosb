@@ -255,7 +255,7 @@ export async function getRecentSponsorshipsByMember(
         eq(resolutions.status, 'published'),
         or(
           eq(resolutions.primarySponsorId, memberId),
-          sql`${memberId} = ANY(${resolutions.coSponsorIds})`,
+          sql`${resolutions.coSponsorIds} @> to_jsonb(${memberId}::text)`,
         ),
       ),
     )
