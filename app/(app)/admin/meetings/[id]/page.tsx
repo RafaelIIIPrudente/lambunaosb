@@ -1,205 +1,358 @@
+import 'server-only';
+
 import Link from 'next/link';
-import { ChevronRight, Mic, Pause, Square, Upload } from 'lucide-react';
+import { notFound } from 'next/navigation';
+import { format } from 'date-fns';
+import { ChevronRight, FileText, Mic, Upload } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { MeetingAudioUpload } from '@/components/app/meeting-audio-upload';
+import { MeetingRecorder } from '@/components/app/meeting-recorder';
+import { requireUser } from '@/lib/auth/require-user';
+import { getMeetingById } from '@/lib/db/queries/meetings';
+import { getCurrentTenantId } from '@/lib/db/queries/tenant';
+import {
+  MEETING_STATUS_LABELS,
+  MEETING_TYPE_LABELS,
+  type MeetingStatusValue,
+} from '@/lib/validators/meeting';
 
-const TABS = ['Details', 'Audio', 'Transcript', 'Minutes', 'Resolutions'];
-const LANGS = ['English', 'Tagalog', 'Hiligaynon', 'Auto-detect'];
-const MARKERS = ['Motion', 'Vote', 'Decision', 'Question', 'Quote', 'Off-record'];
-const RECENT_MARKERS = [
-  { time: '00:08:14', kind: 'MOTION', text: 'Tricycle franchising amendment' },
-  { time: '00:11:02', kind: 'VOTE', text: 'Yea 12 / Nay 1 / Abstain 1' },
-];
-const AGENDA = [
-  '1. Roll call',
-  '2. Reading & approval of last minutes',
-  '3. Tricycle franchising — 2nd reading',
-  '4. BHW honoraria adjustment',
-  '5. Other matters',
-];
+import { MeetingActionsBar } from './_actions-bar';
 
-export default async function MeetingRecorderPage({ params }: { params: Promise<{ id: string }> }) {
-  await params;
+export const metadata = { title: 'Meeting' };
+
+// Sync transcription via startTranscription server action awaits the Whisper
+// orchestrator (per-chunk + optional gpt-4o cleanup). Typical 2hr session =
+// 14 chunks × ~10-30s each = 2-7 minutes. Override the platform default
+// (10s on Vercel hobby, 60s on Pro) so the action survives long runs.
+// Caps at 300s on Pro, 800s on Enterprise.
+export const maxDuration = 300;
+
+const STATUS_BADGE_VARIANT: Record<
+  MeetingStatusValue,
+  'success' | 'outline' | 'warn' | 'destructive' | 'new'
+> = {
+  scheduled: 'outline',
+  in_progress: 'new',
+  awaiting_transcript: 'outline',
+  transcript_in_review: 'warn',
+  transcript_approved: 'success',
+  minutes_published: 'success',
+  cancelled: 'destructive',
+};
+
+const LOCALE_LABELS: Record<string, string> = {
+  hil: 'Hiligaynon',
+  en: 'English',
+  tl: 'Tagalog',
+};
+
+const TRANSCRIPT_STATUS_LABELS: Record<string, string> = {
+  awaiting_asr: 'Pending',
+  asr_failed: 'Failed',
+  in_review: 'In review',
+  approved: 'Approved',
+  rejected: 'Rejected',
+};
+
+const MINUTES_STATUS_LABELS: Record<string, string> = {
+  draft: 'Draft',
+  awaiting_attestation: 'Awaiting attestation',
+  attested: 'Attested',
+  published: 'Published',
+  archived: 'Archived',
+};
+
+function formatDuration(ms: number | null): string | null {
+  if (ms === null) return null;
+  const totalSeconds = Math.floor(ms / 1000);
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+}
+
+export default async function MeetingDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const ctx = await requireUser();
+  const [meeting, tenantId] = await Promise.all([getMeetingById(id), getCurrentTenantId()]);
+  if (!meeting) notFound();
+
+  const audioLength = formatDuration(meeting.audioDurationMs);
+  const presiderLabel = meeting.presider
+    ? `${meeting.presider.honorific} ${meeting.presider.fullName}`
+    : '—';
+  const writeRoles: ReadonlyArray<string> = ['secretary', 'mayor', 'vice_mayor'];
+  const canRecord = writeRoles.includes(ctx.profile.role);
 
   return (
     <div>
-      {/* Breadcrumb / topline */}
       <nav
         aria-label="Breadcrumb"
-        className="text-ink-faint mb-4 flex items-center gap-1.5 font-mono text-xs"
+        className="text-ink-faint mb-2 flex items-center gap-1.5 font-mono text-xs"
       >
         <Link href="/admin/meetings" className="hover:text-rust">
           Meetings
         </Link>
         <ChevronRight className="size-3" aria-hidden="true" />
-        <span className="text-ink">Regular Session #14</span>
+        <span className="text-ink line-clamp-1">{meeting.title}</span>
       </nav>
 
-      <div className="mb-2 flex items-center gap-3">
-        <p className="text-ink-soft font-mono text-[11px] tracking-[0.18em] uppercase">
-          Jun 16, 2026 · 9:00 AM · Session Hall
+      <header className="mb-6">
+        <p className="text-ink-soft mt-1 font-mono text-[11px] tracking-[0.18em] uppercase">
+          № {meeting.sequenceNumber} · {format(meeting.scheduledAt, 'EEEE, MMM d, yyyy · h:mm a')} ·{' '}
+          {meeting.location}
         </p>
-        <Badge variant="new" className="gap-1.5">
-          <span
-            className="bg-paper inline-block size-1.5 animate-pulse rounded-full"
-            aria-hidden="true"
-          />
-          Recording
-        </Badge>
+        <h1 className="text-ink font-script mt-2 text-3xl leading-tight">{meeting.title}</h1>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <Badge variant={STATUS_BADGE_VARIANT[meeting.status]}>
+            {MEETING_STATUS_LABELS[meeting.status]}
+          </Badge>
+          <Badge variant="outline">{MEETING_TYPE_LABELS[meeting.type]}</Badge>
+          <Badge variant="outline">
+            {LOCALE_LABELS[meeting.primaryLocale] ?? meeting.primaryLocale}
+          </Badge>
+          {meeting.cleanupEnabled && <Badge variant="outline">Hiligaynon cleanup on</Badge>}
+        </div>
+      </header>
+
+      <div className="mb-6">
+        <MeetingActionsBar
+          meetingId={meeting.id}
+          status={meeting.status}
+          primaryLocale={meeting.primaryLocale as 'en' | 'tl' | 'hil'}
+          userRole={ctx.profile.role}
+        />
       </div>
 
-      <h1 className="text-ink font-script mb-6 text-4xl">Regular Session #14</h1>
+      <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
+        <div className="flex flex-col gap-5">
+          {/* State-driven primary action area */}
+          {meeting.status === 'scheduled' && (
+            <article className="border-ink/15 bg-paper-2/30 rounded-md border border-dashed p-6 text-center">
+              <Mic className="text-ink-faint mx-auto size-8" aria-hidden="true" />
+              <p className="text-ink font-script mt-3 text-2xl">Ready when you are.</p>
+              <p className="text-ink-soft mt-2 text-sm italic">
+                Click <span className="text-ink font-medium">Start meeting</span> above when the
+                gavel falls. Audio recording, transcription, and minutes generation become available
+                once the session begins.
+              </p>
+              <p className="text-ink-faint mt-4 font-mono text-[11px]">
+                Recorder UI and file upload land in the next batch.
+              </p>
+            </article>
+          )}
 
-      {/* Tabs */}
-      <nav aria-label="Sections" className="border-ink/15 mb-6 flex gap-6 border-b">
-        {TABS.map((tab, i) => (
-          <button
-            key={tab}
-            type="button"
-            aria-current={i === 1 ? 'page' : undefined}
-            className="text-ink-soft hover:text-ink aria-[current=page]:text-rust aria-[current=page]:border-rust font-script -mb-px border-b-2 border-transparent pb-2.5 text-base"
-          >
-            {tab}
-          </button>
-        ))}
-      </nav>
+          {meeting.status === 'in_progress' && (
+            <>
+              <article className="border-rust/40 bg-rust/5 rounded-md border p-4">
+                <div className="flex items-center gap-2">
+                  <span
+                    className="bg-rust inline-block size-2 animate-pulse rounded-full"
+                    aria-hidden="true"
+                  />
+                  <p className="text-rust font-mono text-[10px] font-semibold tracking-[0.18em] uppercase">
+                    Session in progress
+                  </p>
+                  <span className="text-ink-soft ml-auto font-mono text-[11px]">
+                    Started {meeting.startedAt ? format(meeting.startedAt, 'h:mm a') : '—'}
+                  </span>
+                </div>
+              </article>
 
-      <div className="grid gap-5 lg:grid-cols-[1.4fr_1fr]">
-        {/* Recorder */}
-        <article className="border-ink/20 rounded-md border p-6">
-          {/* Language picker */}
-          <div className="mb-5 flex flex-wrap items-center gap-2">
-            <p className="text-ink-faint font-mono text-[10px] tracking-[0.18em] uppercase">
-              Language
-            </p>
-            {LANGS.map((l, i) => (
-              <button
-                key={l}
-                type="button"
-                aria-pressed={i === 2}
-                className="border-ink/30 text-ink-soft hover:border-ink aria-[pressed=true]:bg-rust aria-[pressed=true]:text-paper aria-[pressed=true]:border-rust font-script rounded-pill inline-flex h-7 items-center border px-3 text-sm transition-colors"
-              >
-                {l}
-              </button>
-            ))}
-          </div>
+              {canRecord && <MeetingRecorder meetingId={meeting.id} tenantId={tenantId} />}
 
-          {/* Waveform — pure CSS bars */}
-          <div className="border-ink/15 relative flex h-24 items-center gap-px overflow-hidden rounded-md border bg-transparent px-3">
-            {Array.from({ length: 80 }).map((_, i) => {
-              const h = 18 + Math.abs(Math.sin(i * 0.7) * 60) + (i % 7) * 4;
-              const recorded = i / 80 < 0.3;
-              return (
-                <span
-                  key={i}
-                  aria-hidden="true"
-                  style={{ height: `${Math.min(h, 80)}%` }}
-                  className={`w-1 ${recorded ? 'bg-rust' : 'bg-ink-ghost'}`}
+              {canRecord && (
+                <MeetingAudioUpload
+                  meetingId={meeting.id}
+                  tenantId={tenantId}
+                  meetingStatus={meeting.status}
                 />
-              );
-            })}
-            <span aria-hidden="true" className="bg-rust absolute top-0 left-[30%] h-full w-px" />
-            <span className="text-ink-faint absolute top-1.5 left-3 font-mono text-[10px]">
-              0:00:00
-            </span>
-            <span className="text-ink-faint absolute top-1.5 right-3 font-mono text-[10px]">
-              est. 1:30:00
-            </span>
-          </div>
+              )}
 
-          {/* Timer + controls */}
-          <div className="mt-6 flex flex-col items-center gap-4">
-            <p className="text-rust font-display text-5xl tabular-nums md:text-6xl">00:14:32</p>
-            <p className="text-ink-faint font-mono text-[11px] tracking-wide">elapsed</p>
+              {!canRecord && (
+                <article className="border-ink/15 rounded-md border p-6">
+                  <p className="text-ink-soft text-sm italic">
+                    Read-only — only Secretary, Mayor, or Vice Mayor can record or upload audio.
+                  </p>
+                </article>
+              )}
+            </>
+          )}
 
-            <div className="mt-2 flex items-center gap-4">
-              <button className="border-ink/30 text-ink hover:bg-paper-2 font-script inline-flex h-10 items-center gap-2 rounded-md border border-dashed px-4">
-                <Pause className="size-4" />
-                Pause
-              </button>
-              <button
-                aria-label="Stop recording"
-                className="border-rust hover:bg-rust/10 inline-flex size-16 items-center justify-center rounded-full border-2"
-              >
-                <Square className="text-rust fill-rust size-6" aria-hidden="true" />
-              </button>
-              <button className="border-ink/30 text-ink hover:bg-paper-2 font-script inline-flex h-10 items-center gap-2 rounded-md border border-dashed px-4">
-                <Mic className="size-4" />
-                Mark speaker
-              </button>
-            </div>
-          </div>
+          {meeting.status === 'awaiting_transcript' && (
+            <>
+              <article className="border-ink/15 rounded-md border p-6">
+                <Upload className="text-ink-faint size-6" aria-hidden="true" />
+                <p className="text-ink font-script mt-3 text-2xl">Awaiting transcription</p>
+                <p className="text-ink-soft mt-2 text-sm italic">
+                  Meeting ended at{' '}
+                  {meeting.endedAt ? format(meeting.endedAt, 'h:mm a, MMM d') : '—'}.{' '}
+                  {meeting.audioDurationMs
+                    ? `${formatDuration(meeting.audioDurationMs)} of audio captured.`
+                    : 'No audio uploaded yet — drop a recording below.'}{' '}
+                  Transcription pipeline lands in Step 9.
+                </p>
+              </article>
 
-          <hr className="border-ink/15 my-6 border-t border-dashed" />
+              {canRecord && !meeting.audioDurationMs && (
+                <MeetingAudioUpload
+                  meetingId={meeting.id}
+                  tenantId={tenantId}
+                  meetingStatus={meeting.status}
+                />
+              )}
+            </>
+          )}
 
-          <div className="flex items-center justify-between">
-            <p className="text-ink-soft inline-flex items-center gap-2 text-sm italic">
-              <Upload className="size-4" />
-              Or upload an existing recording
-            </p>
-            <button className="border-ink/30 text-ink hover:bg-paper-2 font-script rounded-pill inline-flex h-9 items-center gap-1.5 border border-dashed px-4 text-sm">
-              Choose mp3 / .wav / .m4a
-            </button>
-          </div>
+          {(meeting.status === 'transcript_in_review' ||
+            meeting.status === 'transcript_approved') && (
+            <article className="border-ink/15 rounded-md border p-6">
+              <FileText className="text-ink-faint size-6" aria-hidden="true" />
+              <p className="text-ink font-script mt-3 text-2xl">Transcript ready</p>
+              <p className="text-ink-soft mt-2 text-sm italic">
+                Open the transcript review to assign speakers and correct mistranscriptions before
+                generating minutes.
+              </p>
+              <Button asChild variant="outline" size="sm" className="mt-4 font-medium">
+                <Link href={`/admin/meetings/${meeting.id}/transcript`}>
+                  <FileText />
+                  Open transcript review
+                </Link>
+              </Button>
+            </article>
+          )}
 
-          <p className="text-ink-faint mt-5 font-mono text-[11px] leading-relaxed">
-            Audio is stored locally during 3G drops, then uploaded when online. Recovery banner
-            appears if app reopens mid-session.
-          </p>
-        </article>
+          {meeting.status === 'minutes_published' && (
+            <article className="border-success/40 bg-success/5 rounded-md border p-6">
+              <FileText className="text-success size-6" aria-hidden="true" />
+              <p className="text-ink font-script mt-3 text-2xl">Minutes published</p>
+              <p className="text-ink-soft mt-2 text-sm italic">
+                The official minutes have been attested and published. Linked news post is
+                public-facing.
+              </p>
+            </article>
+          )}
 
-        {/* Right panels */}
-        <aside className="flex flex-col gap-5">
-          <div className="border-ink/20 rounded-md border p-5">
-            <p className="text-rust mb-2 font-mono text-[10px] font-semibold tracking-[0.18em] uppercase">
-              Quick markers
-            </p>
-            <p className="text-ink-soft mb-3 text-sm italic">Tap to flag a moment</p>
-            <div className="flex flex-wrap gap-1.5">
-              {MARKERS.map((m) => (
-                <button
-                  key={m}
-                  className="border-ink/30 text-ink-soft hover:border-rust hover:text-rust font-script rounded-pill inline-flex h-7 items-center border border-dashed px-3 text-sm transition-colors"
-                >
-                  {m}
-                </button>
-              ))}
-            </div>
-            <ul className="border-ink/15 mt-4 flex flex-col gap-2 border-t border-dashed pt-3 text-sm">
-              {RECENT_MARKERS.map((rm, i) => (
-                <li key={i} className="grid grid-cols-[64px_auto_1fr] items-center gap-2">
-                  <span className="text-rust font-mono text-[11px] tabular-nums">{rm.time}</span>
-                  <Badge variant="outline" className="h-5 px-1.5 text-[9px]">
-                    {rm.kind}
-                  </Badge>
-                  <span className="text-ink-soft text-xs italic">{rm.text}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          {meeting.status === 'cancelled' && (
+            <article className="border-warn/40 bg-warn/5 rounded-md border p-6">
+              <p className="text-warn font-mono text-[10px] font-semibold tracking-[0.18em] uppercase">
+                Cancelled
+              </p>
+              <p className="text-ink font-script mt-2 text-2xl">This session did not happen.</p>
+              <p className="text-ink-soft mt-2 text-sm italic">
+                Check the audit log for the cancellation reason.
+              </p>
+            </article>
+          )}
 
-          <div className="border-ink/20 rounded-md border p-5">
-            <p className="text-rust mb-3 font-mono text-[10px] font-semibold tracking-[0.18em] uppercase">
+          {/* Agenda */}
+          <article className="border-ink/15 rounded-md border p-6">
+            <p className="text-rust mb-4 font-mono text-[10px] font-semibold tracking-[0.18em] uppercase">
               Agenda
             </p>
-            <ol className="flex flex-col gap-1.5 text-sm">
-              {AGENDA.map((a, i) => (
-                <li
-                  key={i}
-                  className={
-                    i === 2
-                      ? 'text-rust font-script text-base font-semibold'
-                      : 'text-ink-soft font-script text-base'
-                  }
-                >
-                  {a}
-                  {i === 2 && (
-                    <span className="text-rust ml-2 text-xs italic">· currently here</span>
-                  )}
-                </li>
-              ))}
-            </ol>
-          </div>
+            {meeting.agenda.length === 0 ? (
+              <p className="text-ink-faint font-mono text-xs italic">
+                No agenda items. Edit the meeting to add them.
+              </p>
+            ) : (
+              <ol className="text-ink flex flex-col gap-2 text-sm">
+                {meeting.agenda.map((item) => (
+                  <li key={item.id} className="flex items-baseline gap-3">
+                    <span className="text-ink-faint font-mono text-[11px] tabular-nums">
+                      {String(item.order).padStart(2, '0')}.
+                    </span>
+                    <span className="font-script text-base">{item.title}</span>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </article>
+        </div>
+
+        <aside className="flex flex-col gap-5">
+          <section className="border-ink/15 rounded-md border p-5">
+            <p className="text-rust mb-3 font-mono text-[10px] font-semibold tracking-[0.18em] uppercase">
+              Metadata
+            </p>
+            <dl className="text-ink-soft grid grid-cols-[110px_1fr] gap-y-2 text-xs">
+              <dt className="text-ink-faint">Type</dt>
+              <dd>{MEETING_TYPE_LABELS[meeting.type]}</dd>
+              <dt className="text-ink-faint">Sequence №</dt>
+              <dd className="font-mono">{meeting.sequenceNumber}</dd>
+              <dt className="text-ink-faint">Scheduled</dt>
+              <dd className="font-mono">{format(meeting.scheduledAt, 'MMM d, yyyy · h:mm a')}</dd>
+              {meeting.startedAt && (
+                <>
+                  <dt className="text-ink-faint">Started</dt>
+                  <dd className="font-mono">{format(meeting.startedAt, 'MMM d, yyyy · h:mm a')}</dd>
+                </>
+              )}
+              {meeting.endedAt && (
+                <>
+                  <dt className="text-ink-faint">Ended</dt>
+                  <dd className="font-mono">{format(meeting.endedAt, 'MMM d, yyyy · h:mm a')}</dd>
+                </>
+              )}
+              <dt className="text-ink-faint">Location</dt>
+              <dd>{meeting.location}</dd>
+              <dt className="text-ink-faint">Presider</dt>
+              <dd>{presiderLabel}</dd>
+              <dt className="text-ink-faint">Locale</dt>
+              <dd>{LOCALE_LABELS[meeting.primaryLocale] ?? meeting.primaryLocale}</dd>
+              {audioLength && (
+                <>
+                  <dt className="text-ink-faint">Audio</dt>
+                  <dd className="font-mono">{audioLength}</dd>
+                </>
+              )}
+            </dl>
+          </section>
+
+          <section className="border-ink/15 rounded-md border p-5">
+            <p className="text-rust mb-3 font-mono text-[10px] font-semibold tracking-[0.18em] uppercase">
+              Pipeline
+            </p>
+            <dl className="text-ink-soft grid grid-cols-[110px_1fr] gap-y-2 text-xs">
+              <dt className="text-ink-faint">Transcript</dt>
+              <dd>
+                {meeting.transcriptStatus
+                  ? (TRANSCRIPT_STATUS_LABELS[meeting.transcriptStatus] ?? meeting.transcriptStatus)
+                  : '—'}
+              </dd>
+              <dt className="text-ink-faint">Minutes</dt>
+              <dd>
+                {meeting.minutesStatus
+                  ? (MINUTES_STATUS_LABELS[meeting.minutesStatus] ?? meeting.minutesStatus)
+                  : '—'}
+              </dd>
+              <dt className="text-ink-faint">HIL cleanup</dt>
+              <dd>{meeting.cleanupEnabled ? 'On' : 'Off'}</dd>
+            </dl>
+          </section>
+
+          {meeting.minutesId && (
+            <section className="border-ink/15 rounded-md border p-5">
+              <p className="text-rust mb-3 font-mono text-[10px] font-semibold tracking-[0.18em] uppercase">
+                Minutes
+              </p>
+              <p className="text-ink-soft text-xs italic">
+                {meeting.minutesStatus === 'published'
+                  ? 'Official minutes published. Linked news post is public-facing.'
+                  : meeting.minutesStatus === 'attested'
+                    ? 'Attested by the presiding officer. Ready for the Secretary to publish.'
+                    : meeting.minutesStatus === 'awaiting_attestation'
+                      ? 'Submitted by the Secretary. Awaiting presiding officer.'
+                      : meeting.minutesStatus === 'archived'
+                        ? 'Archived. The transcript can be re-used to draft fresh minutes.'
+                        : 'Drafted by gpt-4o. Edit, then submit for attestation.'}
+              </p>
+              <Button asChild variant="outline" size="sm" className="mt-3 font-medium">
+                <Link href={`/admin/meetings/${meeting.id}/minutes`}>Open minutes</Link>
+              </Button>
+            </section>
+          )}
         </aside>
       </div>
     </div>

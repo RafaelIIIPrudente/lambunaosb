@@ -39,6 +39,41 @@ export const stopMeetingSchema = z.object({
 
 export type StopMeetingInput = z.infer<typeof stopMeetingSchema>;
 
+export const startTranscriptionSchema = z.object({
+  meetingId: z.uuid(),
+});
+
+export type StartTranscriptionInput = z.infer<typeof startTranscriptionSchema>;
+
+// Bulk speaker assignment for selected segments. Speaker is one of:
+//   - { speakerId: <member uuid>, speakerLabel: null } — specific SB member
+//   - { speakerId: null, speakerLabel: 'Unknown' | 'Multiple' | string } — unresolved
+export const batchAssignSpeakerSchema = z
+  .object({
+    transcriptId: z.uuid(),
+    segmentIds: z.array(z.uuid()).min(1).max(500),
+    speakerId: z.uuid().nullable().optional(),
+    speakerLabel: z.string().min(1).max(120).nullable().optional(),
+  })
+  .refine(
+    (v) => v.speakerId != null || (v.speakerLabel && v.speakerLabel.length > 0),
+    'Either speakerId or speakerLabel must be set.',
+  );
+
+export type BatchAssignSpeakerInput = z.infer<typeof batchAssignSpeakerSchema>;
+
+export const unapproveTranscriptSchema = z.object({
+  transcriptId: z.uuid(),
+});
+
+export type UnapproveTranscriptInput = z.infer<typeof unapproveTranscriptSchema>;
+
+export const generateMinutesSchema = z.object({
+  meetingId: z.uuid(),
+});
+
+export type GenerateMinutesInput = z.infer<typeof generateMinutesSchema>;
+
 export const publishMinutesSchema = z.object({
   meetingId: z.uuid(),
   minutesNewsPostId: z.uuid(),

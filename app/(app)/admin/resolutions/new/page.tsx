@@ -25,7 +25,7 @@ export default async function NewResolutionPage() {
     label: `${m.honorific} ${m.fullName}`,
   }));
 
-  const meetingOptions = meetings.map((m) => ({
+  const meetingOptions = meetings.rows.map((m) => ({
     id: m.id,
     label: `${m.title} · ${format(m.date, 'MMM d, yyyy')}`,
   }));

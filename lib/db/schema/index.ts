@@ -7,6 +7,7 @@ export * from './meetings';
 export * from './audio-chunks';
 export * from './transcripts';
 export * from './transcript-segments';
+export * from './meeting-minutes';
 export * from './resolutions';
 export * from './resolution-versions';
 export * from './news-posts';

@@ -1,5 +1,14 @@
 import { sql } from 'drizzle-orm';
-import { integer, jsonb, pgEnum, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import {
+  boolean,
+  integer,
+  jsonb,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+} from 'drizzle-orm/pg-core';
 
 import { profiles } from './profiles';
 import { sbMembers } from './sb-members';
@@ -51,6 +60,9 @@ export const meetings = pgTable('meetings', {
   status: meetingStatus('status').notNull().default('scheduled'),
   audioStoragePrefix: text('audio_storage_prefix'),
   audioDurationMs: integer('audio_duration_ms'),
+  // Per-meeting toggle for the Hiligaynon code-switch cleanup pass after
+  // Whisper. Default false; flip on for sessions known to be HIL-heavy.
+  cleanupEnabled: boolean('cleanup_enabled').notNull().default(false),
   createdBy: uuid('created_by').references(() => profiles.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
