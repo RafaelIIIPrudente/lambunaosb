@@ -15,6 +15,8 @@ import { FALLBACK_TENANT, getCurrentTenant } from '@/lib/db/queries/tenant';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getCompressedImageUrl, pickSizeForSurface } from '@/lib/upload/storage-url';
 
+export const revalidate = 1800;
+
 const SITE_URL = env.NEXT_PUBLIC_SITE_URL;
 
 const POSITION_LABELS: Record<string, string> = {

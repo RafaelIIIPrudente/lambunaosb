@@ -25,6 +25,10 @@ import { FALLBACK_TENANT, getCurrentTenant } from '@/lib/db/queries/tenant';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getCompressedImageUrl, pickSizeForSurface } from '@/lib/upload/storage-url';
 
+// Revalidate every 30 min. Signed URLs use a 2h TTL (lib/supabase/signed-urls),
+// so cached HTML always points at URLs that are still valid.
+export const revalidate = 1800;
+
 const SITE_URL = env.NEXT_PUBLIC_SITE_URL;
 const PAGE_TITLE = 'Sangguniang Bayan ng Lambunao | Official Site';
 const PAGE_DESCRIPTION =

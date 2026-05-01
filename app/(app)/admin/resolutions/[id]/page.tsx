@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { format } from 'date-fns';
 import { inArray } from 'drizzle-orm';
-import { ChevronRight, Download, History, Upload } from 'lucide-react';
+import { ChevronRight, Download, FileText, History, Upload } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -158,11 +158,37 @@ export default async function ResolutionDetailPage({
           </header>
 
           {signedDownloadUrl ? (
-            <iframe
-              src={signedDownloadUrl}
-              title={`PDF preview for ${resolution.number}`}
-              className="bg-paper-2/40 min-h-[800px] w-full border-0"
-            />
+            <>
+              {/* Desktop: full inline PDF preview with browser-native page nav. */}
+              <iframe
+                src={signedDownloadUrl}
+                title={`PDF preview for ${resolution.number}`}
+                className="bg-paper-2/40 hidden min-h-[800px] w-full border-0 md:block"
+              />
+              {/* Mobile: iframe-rendered PDFs strip page-nav chrome on iOS Safari /
+                  Chrome Mobile, leaving readers stuck on page 1. Surface an explicit
+                  open-in-browser action so the OS PDF viewer (with full pagination)
+                  is one tap away. */}
+              <a
+                href={signedDownloadUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`Open signed PDF for ${resolution.number} in a new tab`}
+                className="bg-paper-2/30 hover:bg-paper-2/60 focus-visible:ring-rust/40 flex min-h-[280px] flex-col items-center justify-center gap-3 px-6 py-10 text-center transition-colors outline-none focus-visible:ring-2 md:hidden"
+              >
+                <FileText className="text-rust size-8" aria-hidden="true" />
+                <p className="text-ink font-script text-xl">Open PDF</p>
+                <p className="text-ink-soft max-w-xs text-sm">
+                  Tap to open in your browser&apos;s PDF viewer — full page-by-page navigation,
+                  zoom, and search.
+                </p>
+                {resolution.pdfPageCount !== null && (
+                  <p className="text-ink-faint font-mono text-[11px]">
+                    {resolution.pdfPageCount} pages
+                  </p>
+                )}
+              </a>
+            </>
           ) : (
             <div className="bg-paper-2/30 flex min-h-[320px] flex-col items-center justify-center gap-3 px-6 py-10 text-center">
               <Upload className="text-ink-faint size-8" aria-hidden="true" />
