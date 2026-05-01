@@ -14,7 +14,6 @@ import { writeAudit } from '@/lib/services/audit';
 import { ok, err, type Result } from '@/lib/types/result';
 import {
   updateNotificationPreferencesSchema,
-  updatePasswordSchema,
   updateProfileSchema,
   updateTenantSettingsSchema,
 } from '@/lib/validators/settings';
@@ -56,44 +55,6 @@ export async function updateProfile(raw: unknown): Promise<Result<void>> {
     return ok(undefined);
   } catch (e) {
     return err(e instanceof Error ? e.message : 'Failed to update profile.', 'E_UNKNOWN');
-  }
-}
-
-export async function updatePassword(raw: unknown): Promise<Result<void>> {
-  const parsed = updatePasswordSchema.safeParse(raw);
-  if (!parsed.success) {
-    return err(parsed.error.issues[0]?.message ?? 'Invalid input.', 'E_VALIDATION');
-  }
-
-  const ctx = await getAuthContext();
-  if (!ctx) return err('You must be signed in.', 'E_UNAUTHORIZED');
-
-  try {
-    const supabase = await createClient();
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: ctx.email,
-      password: parsed.data.currentPassword,
-    });
-    if (signInError) {
-      return err('Current password is incorrect.', 'E_INVALID_CREDENTIALS');
-    }
-
-    const { error } = await supabase.auth.updateUser({ password: parsed.data.newPassword });
-    if (error) return err(error.message, 'E_UPDATE_FAILED');
-
-    await writeAudit({
-      actorId: ctx.userId,
-      actorRole: ctx.profile.role,
-      action: 'profile.password_changed',
-      category: 'security',
-      targetType: 'profile',
-      targetId: ctx.userId,
-      alert: true,
-    });
-
-    return ok(undefined);
-  } catch (e) {
-    return err(e instanceof Error ? e.message : 'Failed to update password.', 'E_UNKNOWN');
   }
 }
 

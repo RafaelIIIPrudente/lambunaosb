@@ -16,7 +16,6 @@ import {
 } from '@/lib/validators/settings';
 
 import { NotificationsForm } from './_notifications-form';
-import { PasswordForm } from './_password-form';
 import { ProfileForm } from './_profile-form';
 import { SessionsSection } from './_sessions-section';
 import { TenantForm } from './_tenant-form';
@@ -69,7 +68,6 @@ export default async function SettingsPage() {
 
   const sections: Section[] = [
     { id: 'profile', label: 'Profile', visible: true },
-    { id: 'password', label: 'Password', visible: true },
     { id: 'notifications', label: 'Notifications', visible: true },
     { id: 'language', label: 'Language', visible: true },
     { id: 'sessions', label: 'Sessions', visible: true },
@@ -122,20 +120,6 @@ export default async function SettingsPage() {
               Profile
             </p>
             <ProfileForm defaults={profileDefaults} />
-          </section>
-
-          <section
-            id="password"
-            aria-labelledby="password-heading"
-            className="border-ink/15 scroll-mt-20 rounded-md border p-6"
-          >
-            <p
-              id="password-heading"
-              className="text-rust mb-4 font-mono text-[10px] font-semibold tracking-[0.18em] uppercase"
-            >
-              Password
-            </p>
-            <PasswordForm />
           </section>
 
           <section
