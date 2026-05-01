@@ -236,6 +236,14 @@ export default async function MeetingDetailPage({ params }: { params: Promise<{ 
                 The official minutes have been attested and published. Linked news post is
                 public-facing.
               </p>
+              {meeting.transcriptStatus && (
+                <Button asChild variant="outline" size="sm" className="mt-4 font-medium">
+                  <Link href={`/admin/meetings/${meeting.id}/transcript`}>
+                    <FileText />
+                    View transcript
+                  </Link>
+                </Button>
+              )}
             </article>
           )}
 

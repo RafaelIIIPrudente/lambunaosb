@@ -161,7 +161,7 @@ export default async function MembersPage() {
             ? `Composed of the Vice Mayor (presiding officer) and ${sbMemberCount} elected members serving three-year terms.`
             : `Composed of ${sbMemberCount} elected members serving three-year terms.`
         }
-        caption="Plaza Rizal · Lambunao"
+        caption="Lambunao"
       />
 
       <section className="bg-paper">
@@ -175,7 +175,7 @@ export default async function MembersPage() {
           ) : (
             <Stagger
               as="ul"
-              className="grid gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+              className="grid grid-cols-2 gap-x-3 gap-y-10 sm:gap-x-6 sm:gap-y-12 lg:grid-cols-3 xl:grid-cols-4"
             >
               {sortedMembers.map((member) => {
                 const photoUrl = memberPhotoById.get(member.id);

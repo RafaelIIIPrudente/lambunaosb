@@ -117,8 +117,8 @@ export function CoverSection({
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="border-ink/15 bg-paper-2 relative flex aspect-video items-center justify-center overflow-hidden rounded-md border">
+    <div className="flex min-w-0 flex-col gap-3">
+      <div className="border-ink/15 bg-paper-2 relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-md border">
         {signedDownloadUrl && coverStoragePath ? (
           <Image
             src={signedDownloadUrl}
@@ -157,7 +157,7 @@ export function CoverSection({
             {coverStoragePath ? <RefreshCw /> : <ImagePlus />}
             {progressLabel ?? (coverStoragePath ? 'Replace cover' : 'Upload cover')}
           </Button>
-          <p className="text-ink-faint font-mono text-[11px]">
+          <p className="text-ink-faint font-mono text-[11px] break-words">
             JPG · PNG · WebP · max {formatBytes(MAX_BYTES)} source · 16:9 recommended ·
             auto-converted to WebP
           </p>

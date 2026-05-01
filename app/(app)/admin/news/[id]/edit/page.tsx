@@ -83,27 +83,27 @@ export default async function EditNewsPostPage({ params }: { params: Promise<{ i
     <div>
       <nav
         aria-label="Breadcrumb"
-        className="text-ink-faint mb-2 flex items-center gap-1.5 font-mono text-xs"
+        className="text-ink-faint mb-2 flex flex-wrap items-center gap-1.5 font-mono text-xs"
       >
         <Link href="/admin/news" className="hover:text-rust">
           News
         </Link>
-        <ChevronRight className="size-3" aria-hidden="true" />
-        <Link href={`/admin/news/${post.id}`} className="hover:text-rust">
+        <ChevronRight className="size-3 shrink-0" aria-hidden="true" />
+        <Link href={`/admin/news/${post.id}`} className="hover:text-rust min-w-0 break-words">
           {post.title}
         </Link>
-        <ChevronRight className="size-3" aria-hidden="true" />
+        <ChevronRight className="size-3 shrink-0" aria-hidden="true" />
         <span className="text-ink">Edit</span>
       </nav>
 
-      <header className="mb-6">
-        <h1 className="text-ink font-script text-3xl leading-tight">Edit post</h1>
-        <p className="text-ink-soft mt-1 text-sm italic">{post.title}</p>
+      <header className="mb-6 min-w-0">
+        <h1 className="text-ink font-script text-3xl leading-tight break-words">Edit post</h1>
+        <p className="text-ink-soft mt-1 text-sm break-words italic">{post.title}</p>
       </header>
 
-      <div className="flex flex-col gap-6">
-        <div className="grid gap-5 lg:grid-cols-[320px_1fr]">
-          <aside>
+      <div className="flex min-w-0 flex-col gap-6">
+        <div className="grid min-w-0 gap-5 lg:grid-cols-[320px_1fr]">
+          <aside className="min-w-0">
             <p className="text-rust mb-3 font-mono text-[10px] font-semibold tracking-[0.18em] uppercase">
               Cover image
             </p>

@@ -95,9 +95,11 @@ export default async function NewsPostDetailPage({ params }: { params: Promise<{
         <span className="text-ink line-clamp-1">{post.title}</span>
       </nav>
 
-      <header className="mb-6">
-        <h1 className="text-ink font-script text-3xl leading-tight">{post.title}</h1>
-        {post.excerpt && <p className="text-ink-soft mt-2 text-base italic">{post.excerpt}</p>}
+      <header className="mb-6 min-w-0">
+        <h1 className="text-ink font-script text-3xl leading-tight break-words">{post.title}</h1>
+        {post.excerpt && (
+          <p className="text-ink-soft mt-2 text-base break-words italic">{post.excerpt}</p>
+        )}
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <Badge variant={STATUS_BADGE_VARIANT[post.status]}>
             {NEWS_STATUS_LABELS[post.status]}
@@ -123,8 +125,8 @@ export default async function NewsPostDetailPage({ params }: { params: Promise<{
         />
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
-        <div className="flex flex-col gap-5">
+      <div className="grid min-w-0 gap-5 lg:grid-cols-[1fr_320px]">
+        <div className="flex min-w-0 flex-col gap-5">
           <article className="border-ink/15 overflow-hidden rounded-md border">
             <div className="bg-paper-2 relative flex h-64 w-full items-center justify-center sm:h-80 lg:h-96">
               {signedDownloadUrl ? (
@@ -145,17 +147,17 @@ export default async function NewsPostDetailPage({ params }: { params: Promise<{
             </div>
           </article>
 
-          <article className="border-ink/15 rounded-md border p-6">
+          <article className="border-ink/15 min-w-0 rounded-md border p-4 sm:p-6">
             <p className="text-rust mb-4 font-mono text-[10px] font-semibold tracking-[0.18em] uppercase">
               Body
             </p>
-            <div className="text-ink prose-sm max-w-none leading-relaxed whitespace-pre-wrap">
+            <div className="text-ink prose-sm max-w-none leading-relaxed break-words whitespace-pre-wrap">
               {post.bodyMdx}
             </div>
           </article>
 
           {post.photos.length > 0 && (
-            <article className="border-ink/15 rounded-md border p-6">
+            <article className="border-ink/15 min-w-0 rounded-md border p-4 sm:p-6">
               <p className="text-rust mb-4 font-mono text-[10px] font-semibold tracking-[0.18em] uppercase">
                 Photo gallery · {post.photos.length} {post.photos.length === 1 ? 'photo' : 'photos'}
               </p>
@@ -199,15 +201,15 @@ export default async function NewsPostDetailPage({ params }: { params: Promise<{
             </p>
             <dl className="text-ink-soft grid grid-cols-[100px_1fr] gap-y-2 text-xs">
               <dt className="text-ink-faint">Author</dt>
-              <dd>{author}</dd>
+              <dd className="break-words">{author}</dd>
               <dt className="text-ink-faint">Slug</dt>
               <dd className="font-mono break-all">{post.slug}</dd>
               <dt className="text-ink-faint">Category</dt>
-              <dd>{NEWS_CATEGORY_LABELS[post.category]}</dd>
+              <dd className="break-words">{NEWS_CATEGORY_LABELS[post.category]}</dd>
               {committeeName && (
                 <>
                   <dt className="text-ink-faint">Committee</dt>
-                  <dd>{committeeName}</dd>
+                  <dd className="break-words">{committeeName}</dd>
                 </>
               )}
               <dt className="text-ink-faint">Created</dt>
