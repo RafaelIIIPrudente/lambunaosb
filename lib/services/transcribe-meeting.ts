@@ -135,16 +135,17 @@ export async function transcribeMeetingNow(
 
   try {
     const adminClient = createAdminClient();
-    const allSegments: WhisperSegment[] = [];
-    let cumulativeOffsetMs = 0;
-    let totalDurationSeconds = 0;
-    let asrCostUsd = 0;
 
+    // MediaRecorder.start(timeslice) writes the WebM EBML header only on the
+    // first blob — chunks 1..N are header-less continuations that Whisper
+    // rejects as "Invalid file format". Concatenate so chunk-0's header
+    // validates the whole stream; Whisper segment timestamps are then already
+    // absolute against the assembled file.
+    const blobs: Blob[] = [];
     for (const chunk of chunks) {
       const { data: blob, error: dlErr } = await adminClient.storage
         .from(AUDIO_BUCKET)
         .download(chunk.storagePath);
-
       if (dlErr || !blob) {
         throw new Error(
           `Failed to download chunk ${chunk.sequenceIndex} at ${chunk.storagePath}: ${
@@ -152,27 +153,23 @@ export async function transcribeMeetingNow(
           }`,
         );
       }
-
-      const ext = chunk.storagePath.split('.').pop() ?? 'webm';
-      const result = await transcribeChunk(blob, {
-        language: meeting.primaryLocale,
-        filename: `chunk_${chunk.sequenceIndex}.${ext}`,
-      });
-
-      // Offset segments to absolute meeting time.
-      for (const seg of result.segments) {
-        allSegments.push({
-          start: cumulativeOffsetMs / 1000 + seg.start,
-          end: cumulativeOffsetMs / 1000 + seg.end,
-          text: seg.text,
-          confidence: seg.confidence,
-        });
-      }
-
-      cumulativeOffsetMs += chunk.durationMs;
-      totalDurationSeconds += result.durationSeconds;
-      asrCostUsd += result.costUsd;
+      blobs.push(blob);
     }
+
+    const firstChunk = chunks[0]!;
+    const ext = firstChunk.storagePath.split('.').pop() ?? 'webm';
+    const assembled = new Blob(blobs, {
+      type: blobs[0]?.type || firstChunk.mimeType || 'audio/webm;codecs=opus',
+    });
+
+    const result = await transcribeChunk(assembled, {
+      language: meeting.primaryLocale,
+      filename: `meeting_${meetingId}.${ext}`,
+    });
+
+    const allSegments: WhisperSegment[] = result.segments;
+    const totalDurationSeconds = result.durationSeconds;
+    const asrCostUsd = result.costUsd;
 
     let cleanupCostUsd = 0;
     let finalSegments = allSegments;
